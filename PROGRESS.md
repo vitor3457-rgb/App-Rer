@@ -13,7 +13,7 @@
 5. [x] Interface — Tela 1 (Novo lançamento).
 6. [x] Interface — Tela 2 (Lançamentos do mês, totais, excluir).
 7. [x] Pré-visualização local + testes de interface no Chromium (tamanho de celular).
-8. [ ] Guia do usuário (`README.md`): instalar no Android, adicionar/remover usuário,
+8. [x] Guia do usuário (`README.md`): instalar no Android, adicionar/remover usuário,
        adicionar o ano de 2027.
 9. [U] Ativar a API do Apps Script e fazer `clasp login` (passo a passo para o usuário).
 10. [ ] Criar planilha + projeto (`clasp create --type sheets`), `clasp push`, publicar
@@ -24,8 +24,11 @@
 13. [ ] Entrega final: link do app, link da planilha, instruções.
 
 ## Estado atual
-- **Última etapa concluída:** 7
-- **Próximo passo exato:** etapa 8 — escrever o `README.md` (guia do usuário).
+- **Última etapa concluída:** 8
+- **Próximo passo exato:** etapa 9 — pedir ao usuário para ativar a API do Apps Script
+  (https://script.google.com/home/usersettings) e fazer o `clasp login --no-localhost`
+  (Claude roda o comando em segundo plano com um FIFO na entrada; o usuário abre a URL,
+  autoriza e cola no chat a URL `http://localhost:8888/?code=...` para onde o navegador foi).
 
 ## Pendências que dependem do usuário
 - **GitHub sem permissão de escrita** (push dá 403 "Resource not accessible by integration").
@@ -47,3 +50,6 @@
   botão "voltar" do Android via google.script.history). dev/gerar-preview.js gera dev/preview.html
   com o servidor rodando sobre a simulação; dev/testes-ui.js — 14 testes no Chromium (Pixel 7 e 360px),
   prints em dev/prints/ (não versionados).
+- Etapa 8: README.md (primeiro acesso, instalar no Android, uso, adicionar/remover usuário,
+  liberar 2027, problemas comuns, colunas para o dashboard). dev/publicar.js (push + atualiza a
+  mesma implantação; antes confere se o código online foi editado no site e para se foi).
