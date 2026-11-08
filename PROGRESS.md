@@ -6,7 +6,7 @@
 ## Plano (etapas pequenas e numeradas)
 
 1. [x] Estrutura inicial: repositório git, CLAUDE.md, PROGRESS.md, .gitignore.
-2. [ ] Manifesto e configuração: `package.json`, `src/appsscript.json`, `src/Config.js`.
+2. [x] Manifesto e configuração: `package.json`, `src/appsscript.json`, `src/Config.js`.
 3. [ ] Servidor `src/Codigo.js`: `doGet`, controle de acesso, criação da aba/cabeçalho,
        salvar (com LockService e anti-duplicação), listar mês, excluir (com auditoria).
 4. [ ] Testes automáticos do servidor em `dev/` (simulação do Apps Script em Node).
@@ -24,11 +24,17 @@
 13. [ ] Entrega final: link do app, link da planilha, instruções.
 
 ## Estado atual
-- **Última etapa concluída:** 1
-- **Próximo passo exato:** etapa 2 — criar `package.json`, `src/appsscript.json` e `src/Config.js`.
+- **Última etapa concluída:** 2
+- **Próximo passo exato:** etapa 3 — escrever `src/Codigo.js` (servidor).
 
 ## Pendências que dependem do usuário
-- (ainda nenhuma — serão pedidas na etapa 9)
+- **GitHub sem permissão de escrita** (push dá 403 "Resource not accessible by integration").
+  O usuário precisa liberar o repositório App-Rer no app do Claude no GitHub
+  (https://github.com/apps/claude/installations/select_target) ou reconectar em
+  https://claude.ai/connect-github. Enquanto isso os commits ficam só no container —
+  assim que liberar: `git push -u origin claude/church-finance-app-h1epmv`.
 
 ## Registro
 - Etapa 1: criados CLAUDE.md, PROGRESS.md, .gitignore.
+- Etapa 2: package.json (clasp 3.4.1 como dependência de dev; scripts test/preview/test:ui/push/publicar),
+  src/appsscript.json (fuso São Paulo, web app USER_ACCESSING + ANYONE), src/Config.js.

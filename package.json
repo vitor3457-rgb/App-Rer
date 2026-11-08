@@ -1,0 +1,27 @@
+{
+  "name": "financeiro-igreja",
+  "version": "1.0.0",
+  "description": "App de controle financeiro da igreja (Google Apps Script + Google Sheets)",
+  "scripts": {
+    "test": "node dev/testes-servidor.js",
+    "preview": "node dev/gerar-preview.js",
+    "test:ui": "node dev/gerar-preview.js && node dev/testes-ui.js",
+    "push": "clasp push --force",
+    "publicar": "node dev/publicar.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vitor3457-rgb/App-Rer.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/vitor3457-rgb/App-Rer/issues"
+  },
+  "homepage": "https://github.com/vitor3457-rgb/App-Rer#readme",
+  "devDependencies": {
+    "@google/clasp": "^3.4.1"
+  },
+  "private": true
+}
