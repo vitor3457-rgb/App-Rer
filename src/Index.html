@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <?!= incluir_('Estilos'); ?>
+  </head>
+  <body>
+    <header class="topo">
+      <svg class="topo-icone" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M11 2h2v3h3v2h-3v2.4l7 4V22h-6v-4a2 2 0 0 0-4 0v4H4v-8.6l7-4V7H8V5h3z" fill="currentColor"/>
+      </svg>
+      <span class="topo-titulo"><?= nomeApp ?></span>
+    </header>
+
+    <main class="conteudo">
+      <!-- ===================== TELA 1: NOVO LANÇAMENTO ===================== -->
+      <section id="tela-novo" class="tela" aria-labelledby="titulo-novo">
+        <h1 id="titulo-novo" class="titulo-tela">Novo lançamento</h1>
+
+        <form id="form-lancamento" class="cartao" novalidate autocomplete="off">
+          <div class="campo">
+            <label for="valor" class="rotulo">Valor</label>
+            <input id="valor" class="entrada entrada-valor" type="text" inputmode="numeric"
+                   placeholder="R$ 0,00" autocomplete="off" enterkeyhint="done">
+          </div>
+
+          <div class="campo">
+            <span class="rotulo" id="rotulo-tipo">Tipo</span>
+            <div class="grupo-botoes" role="group" aria-labelledby="rotulo-tipo">
+              <button type="button" class="botao-opcao opcao-entrada" data-tipo="Entrada" aria-pressed="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l7 8h-4.5v8h-5v-8H5z" fill="currentColor"/></svg>
+                Entrada
+              </button>
+              <button type="button" class="botao-opcao opcao-saida" data-tipo="Saída" aria-pressed="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20l-7-8h4.5V4h5v8H19z" fill="currentColor"/></svg>
+                Saída
+              </button>
+            </div>
+          </div>
+
+          <div class="campo" id="bloco-categoria" hidden>
+            <span class="rotulo" id="rotulo-categoria">A entrada é</span>
+            <div class="grupo-botoes" role="group" aria-labelledby="rotulo-categoria">
+              <button type="button" class="botao-opcao opcao-categoria" data-categoria="Dízimo" aria-pressed="false">Dízimo</button>
+              <button type="button" class="botao-opcao opcao-categoria" data-categoria="Oferta" aria-pressed="false">Oferta</button>
+            </div>
+          </div>
+
+          <div class="campo" id="bloco-descricao" hidden>
+            <label for="descricao" class="rotulo">Descrição da despesa</label>
+            <input id="descricao" class="entrada" type="text" maxlength="200"
+                   placeholder="Ex.: aluguel, água, luz" autocomplete="off" enterkeyhint="done">
+            <div id="sugestoes" class="sugestoes" aria-label="Sugestões"></div>
+          </div>
+
+          <div class="campo">
+            <label for="data" class="rotulo">Data</label>
+            <input id="data" class="entrada" type="date">
+            <div id="data-extenso" class="ajuda"></div>
+          </div>
+
+          <div id="erro-form" class="mensagem-erro" role="alert" hidden></div>
+
+          <button type="submit" id="botao-salvar" class="botao botao-principal">Salvar</button>
+        </form>
+
+        <button type="button" id="ir-lista" class="botao botao-secundario">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v2H4zm0 6h16v2H4zm0 6h16v2H4z" fill="currentColor"/></svg>
+          Ver lançamentos do mês
+        </button>
+
+        <p class="usuario">Conectado como <strong id="email-usuario"></strong></p>
+      </section>
+
+      <!-- ===================== TELA 2: LANÇAMENTOS DO MÊS ===================== -->
+      <section id="tela-lista" class="tela" aria-labelledby="titulo-lista" hidden>
+        <div class="barra-tela">
+          <button type="button" id="voltar" class="botao-voltar" aria-label="Voltar para novo lançamento">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.4 5.4L14 4l-8 8 8 8 1.4-1.4L8.8 12z" fill="currentColor"/></svg>
+            Voltar
+          </button>
+          <h1 id="titulo-lista" class="titulo-tela">Lançamentos do mês</h1>
+        </div>
+
+        <div class="filtro cartao">
+          <div class="filtro-linha">
+            <button type="button" id="mes-anterior" class="botao-seta" aria-label="Mês anterior">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.4 5.4L14 4l-8 8 8 8 1.4-1.4L8.8 12z" fill="currentColor"/></svg>
+            </button>
+            <label for="filtro-mes" class="visualmente-oculto">Mês</label>
+            <select id="filtro-mes" class="entrada seletor"></select>
+            <span id="ano-fixo" class="ano-fixo"></span>
+            <button type="button" id="mes-seguinte" class="botao-seta" aria-label="Próximo mês">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.6 18.6L10 20l8-8-8-8-1.4 1.4 6.6 6.6z" fill="currentColor"/></svg>
+            </button>
+          </div>
+          <!-- Aparece só quando houver mais de um ano em CONFIG.ANOS -->
+          <div id="linha-ano" class="filtro-linha-ano" hidden>
+            <label for="filtro-ano" class="rotulo">Ano</label>
+            <select id="filtro-ano" class="entrada seletor"></select>
+          </div>
+        </div>
+
+        <div id="estado-lista" class="estado-lista" role="status" aria-live="polite"></div>
+        <ul id="lista" class="lista"></ul>
+
+        <div id="resumo" class="cartao resumo" hidden>
+          <h2 id="resumo-titulo" class="resumo-titulo">Resumo do mês</h2>
+          <div class="linha-resumo sub"><span>Dízimos</span><span id="t-dizimos"></span></div>
+          <div class="linha-resumo sub"><span>Ofertas</span><span id="t-ofertas"></span></div>
+          <div class="linha-resumo cor-entrada"><span>Total de entradas</span><span id="t-entradas"></span></div>
+          <div class="linha-resumo cor-saida"><span>Total de saídas</span><span id="t-saidas"></span></div>
+          <div class="linha-resumo saldo" id="linha-saldo"><span>Saldo do mês</span><span id="t-saldo"></span></div>
+        </div>
+
+        <button type="button" id="voltar-rodape" class="botao botao-secundario">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.4 5.4L14 4l-8 8 8 8 1.4-1.4L8.8 12z" fill="currentColor"/></svg>
+          Voltar para novo lançamento
+        </button>
+      </section>
+    </main>
+
+    <!-- Mensagem rápida (ex.: "Lançamento salvo!") -->
+    <div id="aviso" class="aviso" role="status" aria-live="polite" hidden></div>
+
+    <!-- Confirmação de exclusão -->
+    <div id="modal-fundo" class="modal-fundo" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-titulo" aria-describedby="modal-texto">
+        <h2 id="modal-titulo">Excluir este lançamento?</h2>
+        <div id="modal-texto" class="modal-texto"></div>
+        <p class="modal-alerta">Esta ação não pode ser desfeita pelo app.</p>
+        <div class="modal-botoes">
+          <button type="button" id="modal-cancelar" class="botao botao-secundario">Cancelar</button>
+          <button type="button" id="modal-confirmar" class="botao botao-perigo">Sim, excluir</button>
+        </div>
+      </div>
+    </div>
+
+    <script>var DADOS = <?!= dadosJson ?>;</script>
+    <?!= incluir_('Script'); ?>
+  </body>
+</html>

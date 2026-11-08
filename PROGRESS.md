@@ -10,9 +10,9 @@
 3. [x] Servidor `src/Codigo.js`: `doGet`, controle de acesso, criação da aba/cabeçalho,
        salvar (com LockService e anti-duplicação), listar mês, excluir (com auditoria).
 4. [x] Testes automáticos do servidor em `dev/` (simulação do Apps Script em Node).
-5. [ ] Interface — Tela 1 (Novo lançamento).
-6. [ ] Interface — Tela 2 (Lançamentos do mês, totais, excluir).
-7. [ ] Pré-visualização local + testes de interface no Chromium (tamanho de celular).
+5. [x] Interface — Tela 1 (Novo lançamento).
+6. [x] Interface — Tela 2 (Lançamentos do mês, totais, excluir).
+7. [x] Pré-visualização local + testes de interface no Chromium (tamanho de celular).
 8. [ ] Guia do usuário (`README.md`): instalar no Android, adicionar/remover usuário,
        adicionar o ano de 2027.
 9. [U] Ativar a API do Apps Script e fazer `clasp login` (passo a passo para o usuário).
@@ -24,8 +24,8 @@
 13. [ ] Entrega final: link do app, link da planilha, instruções.
 
 ## Estado atual
-- **Última etapa concluída:** 4
-- **Próximo passo exato:** etapa 5 — escrever `src/Index.html`, `src/Estilos.html`, `src/Script.html` (Tela 1).
+- **Última etapa concluída:** 7
+- **Próximo passo exato:** etapa 8 — escrever o `README.md` (guia do usuário).
 
 ## Pendências que dependem do usuário
 - **GitHub sem permissão de escrita** (push dá 403 "Resource not accessible by integration").
@@ -42,3 +42,8 @@
   salvar com LockService + anti-duplicação por ID, listar mês com totais em centavos,
   excluir com cópia na aba Excluidos) e src/AcessoNegado.html.
 - Etapa 4: dev/gas-mock.js (simulação do Apps Script) e dev/testes-servidor.js — 28 testes passando (`npm test`).
+- Etapas 5–7: src/Index.html, src/Estilos.html, src/Script.html (Tela 1 e Tela 2 numa página só,
+  máscara R$ com números entrando pela direita, botões grandes, confirmação de exclusão,
+  botão "voltar" do Android via google.script.history). dev/gerar-preview.js gera dev/preview.html
+  com o servidor rodando sobre a simulação; dev/testes-ui.js — 14 testes no Chromium (Pixel 7 e 360px),
+  prints em dev/prints/ (não versionados).

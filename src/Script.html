@@ -1,0 +1,646 @@
+<script>
+(function () {
+  'use strict';
+
+  var D = window.DADOS || {};
+  var MESES = D.meses || [];
+  var ANOS = (D.anos || []).slice().sort(function (a, b) { return a - b; });
+  var MAX_CENTAVOS = D.valorMaximoCentavos || 100000000;
+  var TEMPO_LIMITE_MS = 45000;
+
+  var ICONE_OK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.2l-3.5-3.5L4 14.2l5 5 11-11-1.4-1.4z" fill="currentColor"/></svg>';
+  var ICONE_ERRO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 7h2v7h-2zm0 9h2v2h-2zM12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z" fill="currentColor"/></svg>';
+  var ICONE_LIXEIRA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l1 2h4v2H4V5h4zm-3 6h12l-1 12H7zm4 2v8h1.5v-8zm2.5 0v8H14v-8z" fill="currentColor"/></svg>';
+  var ICONE_CARREGANDO = '<svg class="girando" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4a8 8 0 1 0 8 8h-2a6 6 0 1 1-6-6z" fill="currentColor"/></svg>';
+
+  var estado = {
+    centavos: 0,
+    tipo: '',
+    categoria: '',
+    idPendente: '',
+    salvando: false,
+    ano: 0,
+    mes: 0,
+    pedidoLista: 0,
+    itens: [],
+    excluindo: null,
+    telaAtual: 'novo',
+    historicoAtivo: false,
+  };
+
+  function $(id) { return document.getElementById(id); }
+
+  // =====================================================================
+  //  Utilitários
+  // =====================================================================
+
+  function doisDigitos(n) { return ('0' + n).slice(-2); }
+
+  /** 123456 -> "R$ 1.234,56" */
+  function formatarReais(centavos) {
+    var negativo = centavos < 0;
+    var abs = Math.abs(Math.round(centavos));
+    var inteiro = String(Math.floor(abs / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return (negativo ? '- ' : '') + 'R$ ' + inteiro + ',' + doisDigitos(abs % 100);
+  }
+
+  function hojeISO() {
+    var d = new Date();
+    return d.getFullYear() + '-' + doisDigitos(d.getMonth() + 1) + '-' + doisDigitos(d.getDate());
+  }
+
+  /** "2026-11-08" -> "08/11/2026" */
+  function dataBR(iso) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso || '')) return iso || '';
+    return iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4);
+  }
+
+  /** "2026-11-08" -> "domingo, 8 de novembro de 2026" */
+  function dataPorExtenso(iso) {
+    var p = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+    if (!p) return '';
+    var d = new Date(Number(p[1]), Number(p[2]) - 1, Number(p[3]));
+    if (d.getMonth() !== Number(p[2]) - 1) return '';
+    var semana = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
+    return semana[d.getDay()] + ', ' + d.getDate() + ' de ' + (MESES[d.getMonth()] || '').toLowerCase() + ' de ' + d.getFullYear();
+  }
+
+  function gerarId() {
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+      try { return window.crypto.randomUUID(); } catch (e) { /* segue para o plano B */ }
+    }
+    var hex = '';
+    var bytes = new Uint8Array(16);
+    if (window.crypto && window.crypto.getRandomValues) window.crypto.getRandomValues(bytes);
+    else for (var i = 0; i < 16; i++) bytes[i] = Math.floor(Math.random() * 256);
+    for (var j = 0; j < 16; j++) hex += ('0' + bytes[j].toString(16)).slice(-2);
+    return hex.slice(0, 8) + '-' + hex.slice(8, 12) + '-' + hex.slice(12, 16) + '-' + hex.slice(16, 20) + '-' + hex.slice(20);
+  }
+
+  function escaparHtml(texto) {
+    return String(texto === undefined || texto === null ? '' : texto)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function listarAnos() {
+    if (ANOS.length <= 1) return String(ANOS[0] || '');
+    return ANOS.slice(0, -1).join(', ') + ' ou ' + ANOS[ANOS.length - 1];
+  }
+
+  /** Traduz falhas de comunicação para mensagens claras. */
+  function mensagemDeFalha(erro) {
+    var msg = erro && erro.message ? erro.message : String(erro || '');
+    if (/network|failed to fetch|connection|conex|HTTP 0|offline/i.test(msg)) {
+      return 'Sem conexão com a internet. Verifique o Wi-Fi ou os dados móveis e tente de novo.';
+    }
+    if (/authoriz|autoriza|permission|permiss/i.test(msg)) {
+      return 'É preciso autorizar o app de novo. Feche e abra o app. Se continuar, fale com o responsável.';
+    }
+    if (/demorou/i.test(msg)) return msg;
+    return 'Não foi possível falar com o servidor. Tente de novo. (Detalhe: ' + msg + ')';
+  }
+
+  /**
+   * Chama uma função do servidor e devolve uma Promise.
+   * A Promise resolve com a resposta { ok, ... } e rejeita só em falha de comunicação.
+   */
+  function servidor(nomeFuncao) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    return new Promise(function (resolve, reject) {
+      var terminou = false;
+      var limite = setTimeout(function () {
+        if (terminou) return;
+        terminou = true;
+        reject(new Error('O servidor demorou demais para responder. Verifique a internet e tente de novo.'));
+      }, TEMPO_LIMITE_MS);
+      try {
+        var executor = google.script.run
+          .withSuccessHandler(function (resposta) {
+            if (terminou) return;
+            terminou = true;
+            clearTimeout(limite);
+            resolve(resposta || { ok: false, erro: 'Resposta vazia do servidor. Tente de novo.' });
+          })
+          .withFailureHandler(function (erro) {
+            if (terminou) return;
+            terminou = true;
+            clearTimeout(limite);
+            reject(erro);
+          });
+        executor[nomeFuncao].apply(executor, args);
+      } catch (e) {
+        terminou = true;
+        clearTimeout(limite);
+        reject(e);
+      }
+    });
+  }
+
+  var temporizadorAviso = null;
+  function mostrarAviso(html, tipo) {
+    var aviso = $('aviso');
+    aviso.className = 'aviso' + (tipo === 'erro' ? ' erro' : '');
+    aviso.innerHTML = (tipo === 'erro' ? ICONE_ERRO : ICONE_OK) + '<div>' + html + '</div>';
+    aviso.hidden = false;
+    clearTimeout(temporizadorAviso);
+    temporizadorAviso = setTimeout(function () { aviso.hidden = true; }, tipo === 'erro' ? 7000 : 4500);
+  }
+
+  // =====================================================================
+  //  TELA 1 — Novo lançamento
+  // =====================================================================
+
+  var campoValor = $('valor');
+  var campoDescricao = $('descricao');
+  var campoData = $('data');
+
+  function cursorNoFim() {
+    var fim = campoValor.value.length;
+    try { campoValor.setSelectionRange(fim, fim); } catch (e) { /* alguns teclados não permitem */ }
+  }
+
+  /** Máscara de dinheiro: os números entram pela direita (1 → 0,01 → 0,12 → 1,23). */
+  function aoDigitarValor() {
+    var digitos = campoValor.value.replace(/\D/g, '').replace(/^0+/, '').slice(0, 9);
+    estado.centavos = digitos ? parseInt(digitos, 10) : 0;
+    campoValor.value = estado.centavos ? formatarReais(estado.centavos) : '';
+    cursorNoFim();
+    campoValor.classList.remove('com-erro');
+    aoMudarFormulario();
+  }
+
+  function escolherTipo(tipo) {
+    estado.tipo = tipo;
+    document.querySelectorAll('[data-tipo]').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-tipo') === tipo));
+      b.classList.remove('com-erro');
+    });
+    $('bloco-categoria').hidden = tipo !== 'Entrada';
+    $('bloco-descricao').hidden = tipo !== 'Saída';
+    if (tipo !== 'Entrada') escolherCategoria('');
+    aoMudarFormulario();
+  }
+
+  function escolherCategoria(categoria) {
+    estado.categoria = categoria;
+    document.querySelectorAll('[data-categoria]').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-categoria') === categoria));
+      b.classList.remove('com-erro');
+    });
+    aoMudarFormulario();
+  }
+
+  function mostrarSugestoes(lista) {
+    var caixa = $('sugestoes');
+    caixa.innerHTML = '';
+    (lista || []).forEach(function (texto) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'sugestao';
+      b.textContent = texto;
+      b.addEventListener('click', function () {
+        campoDescricao.value = texto;
+        campoDescricao.classList.remove('com-erro');
+        aoMudarFormulario();
+      });
+      caixa.appendChild(b);
+    });
+  }
+
+  function atualizarDataExtenso() {
+    $('data-extenso').textContent = dataPorExtenso(campoData.value);
+  }
+
+  /** Qualquer mudança no formulário gera um novo lançamento (novo ID) e limpa o erro. */
+  function aoMudarFormulario() {
+    estado.idPendente = '';
+    $('erro-form').hidden = true;
+  }
+
+  function mostrarErroFormulario(mensagem, elemento) {
+    var caixa = $('erro-form');
+    caixa.textContent = mensagem;
+    caixa.hidden = false;
+    if (elemento) {
+      elemento.classList.add('com-erro');
+      if (elemento.focus && elemento.tagName === 'INPUT') elemento.focus();
+    }
+    caixa.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function validarFormulario() {
+    if (!estado.centavos || estado.centavos <= 0) {
+      return { erro: 'Digite o valor (maior que zero).', elemento: campoValor };
+    }
+    if (estado.centavos > MAX_CENTAVOS) {
+      return { erro: 'Valor muito alto. O máximo por lançamento é ' + formatarReais(MAX_CENTAVOS) + '.', elemento: campoValor };
+    }
+    if (!estado.tipo) {
+      document.querySelectorAll('[data-tipo]').forEach(function (b) { b.classList.add('com-erro'); });
+      return { erro: 'Escolha se é Entrada ou Saída.' };
+    }
+    if (estado.tipo === 'Entrada' && !estado.categoria) {
+      document.querySelectorAll('[data-categoria]').forEach(function (b) { b.classList.add('com-erro'); });
+      return { erro: 'Escolha se a entrada é Dízimo ou Oferta.' };
+    }
+    var descricao = campoDescricao.value.replace(/\s+/g, ' ').trim();
+    if (estado.tipo === 'Saída' && !descricao) {
+      return { erro: 'Escreva a descrição da despesa (ex.: aluguel, água, luz).', elemento: campoDescricao };
+    }
+    var data = campoData.value;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data) || !dataPorExtenso(data)) {
+      return { erro: 'Escolha a data do lançamento.', elemento: campoData };
+    }
+    if (ANOS.indexOf(Number(data.slice(0, 4))) === -1) {
+      return {
+        erro: 'A data precisa ser de ' + listarAnos() + '. Para lançar em ' + data.slice(0, 4) +
+          ', o ano precisa ser incluído nas configurações do app.',
+        elemento: campoData,
+      };
+    }
+    return {
+      dados: {
+        valorCentavos: estado.centavos,
+        tipo: estado.tipo,
+        categoria: estado.tipo === 'Entrada' ? estado.categoria : 'Despesa',
+        descricao: estado.tipo === 'Saída' ? descricao : '',
+        dataReferencia: data,
+      },
+    };
+  }
+
+  function limparFormulario() {
+    estado.centavos = 0;
+    campoValor.value = '';
+    campoDescricao.value = '';
+    campoData.value = hojeISO();
+    escolherTipo('');
+    document.querySelectorAll('.com-erro').forEach(function (el) { el.classList.remove('com-erro'); });
+    atualizarDataExtenso();
+    aoMudarFormulario();
+  }
+
+  function definirSalvando(sim) {
+    estado.salvando = sim;
+    var botao = $('botao-salvar');
+    botao.disabled = sim;
+    botao.innerHTML = sim ? ICONE_CARREGANDO + ' Salvando...' : 'Salvar';
+  }
+
+  function salvar(evento) {
+    if (evento) evento.preventDefault();
+    if (estado.salvando) return;
+    $('erro-form').hidden = true;
+
+    var v = validarFormulario();
+    if (v.erro) {
+      mostrarErroFormulario(v.erro, v.elemento);
+      return;
+    }
+
+    // Mesmo ID se a pessoa tocar Salvar de novo sem mudar nada (evita duplicar).
+    if (!estado.idPendente) estado.idPendente = gerarId();
+    v.dados.id = estado.idPendente;
+
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    definirSalvando(true);
+
+    servidor('salvarLancamento', v.dados)
+      .then(function (r) {
+        definirSalvando(false);
+        if (!r.ok) {
+          mostrarErroFormulario(r.erro);
+          return;
+        }
+        var d = v.dados;
+        var resumo = escaparHtml(d.tipo) + ' · ' + escaparHtml(d.tipo === 'Entrada' ? d.categoria : d.descricao) +
+          ' · <strong>' + formatarReais(d.valorCentavos) + '</strong> · ' + dataBR(d.dataReferencia);
+        mostrarAviso((r.duplicado ? 'Este lançamento já estava salvo.' : 'Lançamento salvo!') + '<br>' + resumo);
+        limparFormulario();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      })
+      .catch(function (erro) {
+        definirSalvando(false);
+        // O ID é mantido: se a gravação chegou a acontecer, tentar de novo não duplica.
+        estado.idPendente = v.dados.id;
+        mostrarErroFormulario(mensagemDeFalha(erro));
+      });
+  }
+
+  // =====================================================================
+  //  TELA 2 — Lançamentos do mês
+  // =====================================================================
+
+  function prepararFiltros() {
+    var selMes = $('filtro-mes');
+    MESES.forEach(function (nome, i) {
+      var op = document.createElement('option');
+      op.value = String(i + 1);
+      op.textContent = nome;
+      selMes.appendChild(op);
+    });
+
+    var selAno = $('filtro-ano');
+    ANOS.forEach(function (ano) {
+      var op = document.createElement('option');
+      op.value = String(ano);
+      op.textContent = String(ano);
+      selAno.appendChild(op);
+    });
+    // Com um ano só, o ano fica fixo; com mais anos, aparece a lista para escolher.
+    $('linha-ano').hidden = ANOS.length <= 1;
+
+    // Mês inicial: o mês atual (se o ano atual estiver disponível).
+    var hoje = new Date();
+    var anoAtual = hoje.getFullYear();
+    if (ANOS.indexOf(anoAtual) >= 0) {
+      estado.ano = anoAtual;
+      estado.mes = hoje.getMonth() + 1;
+    } else if (ANOS.length && anoAtual > ANOS[ANOS.length - 1]) {
+      estado.ano = ANOS[ANOS.length - 1];
+      estado.mes = 12;
+    } else {
+      estado.ano = ANOS[0];
+      estado.mes = 1;
+    }
+    atualizarFiltros();
+
+    selMes.addEventListener('change', function () { estado.mes = Number(selMes.value); atualizarFiltros(); carregarLista(); });
+    selAno.addEventListener('change', function () { estado.ano = Number(selAno.value); atualizarFiltros(); carregarLista(); });
+    $('mes-anterior').addEventListener('click', function () { mudarMes(-1); });
+    $('mes-seguinte').addEventListener('click', function () { mudarMes(1); });
+  }
+
+  function atualizarFiltros() {
+    $('filtro-mes').value = String(estado.mes);
+    $('filtro-ano').value = String(estado.ano);
+    $('ano-fixo').textContent = String(estado.ano);
+    var primeiro = ANOS[0];
+    var ultimo = ANOS[ANOS.length - 1];
+    $('mes-anterior').disabled = estado.ano === primeiro && estado.mes === 1;
+    $('mes-seguinte').disabled = estado.ano === ultimo && estado.mes === 12;
+  }
+
+  function mudarMes(passo) {
+    var mes = estado.mes + passo;
+    var ano = estado.ano;
+    if (mes < 1) { mes = 12; ano--; }
+    if (mes > 12) { mes = 1; ano++; }
+    if (ANOS.indexOf(ano) === -1) return;
+    estado.mes = mes;
+    estado.ano = ano;
+    atualizarFiltros();
+    carregarLista();
+  }
+
+  function mostrarEstadoLista(html, classe) {
+    var caixa = $('estado-lista');
+    caixa.className = 'estado-lista' + (classe ? ' ' + classe : '');
+    caixa.innerHTML = html;
+  }
+
+  function carregarLista() {
+    var pedido = ++estado.pedidoLista;
+    $('lista').innerHTML = '';
+    $('resumo').hidden = true;
+    mostrarEstadoLista(ICONE_CARREGANDO + '<div>Carregando lançamentos...</div>');
+
+    servidor('listarLancamentos', estado.ano, estado.mes)
+      .then(function (r) {
+        if (pedido !== estado.pedidoLista) return; // a pessoa já trocou de mês
+        if (!r.ok) {
+          mostrarErroLista(r.erro);
+          return;
+        }
+        mostrarLista(r);
+      })
+      .catch(function (erro) {
+        if (pedido !== estado.pedidoLista) return;
+        mostrarErroLista(mensagemDeFalha(erro));
+      });
+  }
+
+  function mostrarErroLista(mensagem) {
+    mostrarEstadoLista(escaparHtml(mensagem) +
+      '<button type="button" class="botao botao-secundario" id="tentar-novamente">Tentar de novo</button>', 'erro');
+    $('tentar-novamente').addEventListener('click', carregarLista);
+  }
+
+  function nomeCurto(email) {
+    return String(email || '').split('@')[0];
+  }
+
+  function mostrarLista(r) {
+    estado.itens = r.itens || [];
+    var nomeMes = MESES[r.mes - 1] || '';
+    var lista = $('lista');
+    lista.innerHTML = '';
+
+    if (!estado.itens.length) {
+      mostrarEstadoLista('Nenhum lançamento em ' + escaparHtml(nomeMes) + ' de ' + r.ano + '.');
+    } else {
+      mostrarEstadoLista('');
+    }
+
+    estado.itens.forEach(function (item, indice) {
+      var entrada = item.tipo === 'Entrada';
+      var titulo = entrada ? item.categoria : (item.descricao || item.categoria);
+      var sub = entrada ? 'Entrada' : 'Saída';
+      if (item.usuario) sub += ' · por ' + nomeCurto(item.usuario);
+
+      var li = document.createElement('li');
+      li.className = 'item ' + (entrada ? 'entrada' : 'saida');
+      li.innerHTML =
+        '<div class="item-data"><strong>' + escaparHtml(item.dataReferencia.slice(8, 10)) + '</strong>' +
+          escaparHtml((MESES[Number(item.dataReferencia.slice(5, 7)) - 1] || '').slice(0, 3).toLowerCase()) + '</div>' +
+        '<div class="item-info"><div class="item-titulo">' + escaparHtml(titulo) + '</div>' +
+          '<div class="item-sub">' + escaparHtml(sub) + '</div></div>' +
+        '<div class="item-valor">' + (entrada ? '+ ' : '- ') + formatarReais(item.valorCentavos) + '</div>';
+
+      if (item.id) {
+        var botao = document.createElement('button');
+        botao.type = 'button';
+        botao.className = 'item-excluir';
+        botao.setAttribute('aria-label', 'Excluir ' + titulo + ' de ' + formatarReais(item.valorCentavos));
+        botao.innerHTML = ICONE_LIXEIRA;
+        botao.addEventListener('click', function () { pedirConfirmacaoExclusao(indice); });
+        li.appendChild(botao);
+      }
+      lista.appendChild(li);
+    });
+
+    var t = r.totais || {};
+    $('resumo-titulo').textContent = 'Resumo de ' + nomeMes + ' de ' + r.ano;
+    $('t-dizimos').textContent = formatarReais(t.dizimos || 0);
+    $('t-ofertas').textContent = formatarReais(t.ofertas || 0);
+    $('t-entradas').textContent = formatarReais(t.entradas || 0);
+    $('t-saidas').textContent = formatarReais(t.saidas || 0);
+    $('t-saldo').textContent = formatarReais(t.saldo || 0);
+    $('linha-saldo').classList.toggle('negativo', (t.saldo || 0) < 0);
+    $('resumo').hidden = false;
+  }
+
+  // ---------- Exclusão ----------
+
+  function pedirConfirmacaoExclusao(indice) {
+    var item = estado.itens[indice];
+    if (!item) return;
+    estado.excluindo = item;
+    var entrada = item.tipo === 'Entrada';
+    $('modal-texto').innerHTML =
+      '<div><strong>' + escaparHtml(item.tipo) + ' · ' + escaparHtml(entrada ? item.categoria : item.descricao) + '</strong></div>' +
+      '<div>Valor: <strong>' + formatarReais(item.valorCentavos) + '</strong></div>' +
+      '<div>Data: ' + dataBR(item.dataReferencia) + '</div>' +
+      (item.usuario ? '<div>Lançado por: ' + escaparHtml(item.usuario) + '</div>' : '');
+    $('modal-confirmar').disabled = false;
+    $('modal-confirmar').innerHTML = 'Sim, excluir';
+    $('modal-fundo').hidden = false;
+    $('modal-cancelar').focus();
+  }
+
+  function fecharModal() {
+    $('modal-fundo').hidden = true;
+    estado.excluindo = null;
+  }
+
+  function confirmarExclusao() {
+    var item = estado.excluindo;
+    if (!item) return;
+    var botao = $('modal-confirmar');
+    botao.disabled = true;
+    botao.innerHTML = ICONE_CARREGANDO + ' Excluindo...';
+
+    servidor('excluirLancamento', item.id)
+      .then(function (r) {
+        fecharModal();
+        if (!r.ok) {
+          mostrarAviso(escaparHtml(r.erro), 'erro');
+        } else {
+          mostrarAviso('Lançamento excluído.');
+        }
+        carregarLista();
+      })
+      .catch(function (erro) {
+        fecharModal();
+        mostrarAviso(escaparHtml(mensagemDeFalha(erro)), 'erro');
+      });
+  }
+
+  // =====================================================================
+  //  Navegação entre as telas (com o botão "voltar" do Android)
+  // =====================================================================
+
+  function exibirTela(tela) {
+    estado.telaAtual = tela;
+    $('tela-novo').hidden = tela !== 'novo';
+    $('tela-lista').hidden = tela !== 'lista';
+    window.scrollTo(0, 0);
+    if (tela === 'lista') carregarLista();
+  }
+
+  function temHistorico() {
+    return estado.historicoAtivo && window.google && google.script && google.script.history;
+  }
+
+  function irParaLista() {
+    if (temHistorico()) {
+      try { google.script.history.push({ tela: 'lista' }, {}, 'lista'); } catch (e) { estado.historicoAtivo = false; }
+    }
+    exibirTela('lista');
+  }
+
+  function voltarParaNovo() {
+    if (temHistorico() && estado.telaAtual === 'lista') {
+      // Volta uma página no histórico (o mesmo que o botão "voltar" do celular).
+      // Se o navegador não deixar, volta direto e desliga o histórico.
+      var reserva = setTimeout(function () {
+        estado.historicoAtivo = false;
+        exibirTela('novo');
+      }, 600);
+      estado.aguardandoVolta = reserva;
+      try { window.history.back(); } catch (e) { /* a reserva resolve */ }
+      return;
+    }
+    exibirTela('novo');
+  }
+
+  function prepararHistorico() {
+    try {
+      if (window.google && google.script && google.script.history) {
+        google.script.history.replace({ tela: 'novo' }, {}, '');
+        google.script.history.setChangeHandler(function (e) {
+          clearTimeout(estado.aguardandoVolta);
+          var tela = e && e.state && e.state.tela === 'lista' ? 'lista' : 'novo';
+          if (!$('modal-fundo').hidden) fecharModal();
+          if (tela !== estado.telaAtual) exibirTela(tela);
+        });
+        estado.historicoAtivo = true;
+      }
+    } catch (e) {
+      estado.historicoAtivo = false;
+    }
+  }
+
+  // =====================================================================
+  //  Início
+  // =====================================================================
+
+  function iniciar() {
+    $('email-usuario').textContent = D.email || '';
+
+    campoValor.addEventListener('input', aoDigitarValor);
+    campoValor.addEventListener('focus', function () { setTimeout(cursorNoFim, 0); });
+    campoValor.addEventListener('click', cursorNoFim);
+
+    document.querySelectorAll('[data-tipo]').forEach(function (b) {
+      b.addEventListener('click', function () { escolherTipo(b.getAttribute('data-tipo')); });
+    });
+    document.querySelectorAll('[data-categoria]').forEach(function (b) {
+      b.addEventListener('click', function () { escolherCategoria(b.getAttribute('data-categoria')); });
+    });
+    campoDescricao.addEventListener('input', function () { campoDescricao.classList.remove('com-erro'); aoMudarFormulario(); });
+
+    if (ANOS.length) {
+      campoData.min = ANOS[0] + '-01-01';
+      campoData.max = ANOS[ANOS.length - 1] + '-12-31';
+    }
+    campoData.value = hojeISO();
+    campoData.addEventListener('input', function () { campoData.classList.remove('com-erro'); atualizarDataExtenso(); aoMudarFormulario(); });
+    campoData.addEventListener('change', atualizarDataExtenso);
+    atualizarDataExtenso();
+
+    // "Enter" no teclado fecha o teclado em vez de salvar sem querer.
+    [campoValor, campoDescricao].forEach(function (campo) {
+      campo.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); campo.blur(); }
+      });
+    });
+
+    $('form-lancamento').addEventListener('submit', salvar);
+    $('ir-lista').addEventListener('click', irParaLista);
+    $('voltar').addEventListener('click', voltarParaNovo);
+    $('voltar-rodape').addEventListener('click', voltarParaNovo);
+    $('modal-cancelar').addEventListener('click', fecharModal);
+    $('modal-confirmar').addEventListener('click', confirmarExclusao);
+    $('modal-fundo').addEventListener('click', function (e) { if (e.target === $('modal-fundo')) fecharModal(); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !$('modal-fundo').hidden) fecharModal();
+    });
+
+    prepararFiltros();
+    prepararHistorico();
+
+    // Sugestões: mostra as do Config na hora e depois atualiza com as mais usadas.
+    mostrarSugestoes(D.sugestoesDespesa);
+    servidor('obterSugestoesDespesa')
+      .then(function (r) {
+        if (r.ok) mostrarSugestoes(r.sugestoes);
+        else mostrarAviso(escaparHtml(r.erro), 'erro');
+      })
+      .catch(function () { /* sem internet agora: as sugestões padrão já estão na tela */ });
+  }
+
+  iniciar();
+})();
+</script>
