@@ -36,6 +36,16 @@
   (https://github.com/apps/claude/installations/select_target) ou reconectar em
   https://claude.ai/connect-github. Enquanto isso os commits ficam só no container —
   assim que liberar: `git push -u origin claude/church-finance-app-h1epmv`.
+- **Ativar a API do Apps Script**: https://script.google.com/home/usersettings → "API do Google Apps Script" → Ativada.
+- **clasp login**: pedido ao usuário (abrir a URL, autorizar, colar no chat a URL `http://localhost:8888/?...`).
+  Se a sessão mudar, refazer: rodar o driver em pty (veja abaixo) e pedir a URL de novo.
+- **E-mail Google do tesoureiro** (para a lista de autorizados e o compartilhamento da planilha).
+
+### Como refazer o login do clasp numa sessão nova
+Rodar em segundo plano um script Python que abre `node_modules/.bin/clasp login --no-localhost`
+num pseudo-terminal (`pty.fork`), grava a saída num log e, quando existir um arquivo `url.txt`,
+escreve o conteúdo + Enter no terminal. Mostrar ao usuário a URL de autorização do log;
+quando ele colar a URL de retorno, gravá-la em `url.txt`. Conferir com `npx clasp show-authorized-user`.
 
 ## Registro
 - Etapa 1: criados CLAUDE.md, PROGRESS.md, .gitignore.
