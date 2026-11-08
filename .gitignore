@@ -1,0 +1,11 @@
+node_modules/
+# Credenciais do clasp (NUNCA commitar)
+.clasprc.json
+**/.clasprc.json
+creds.json
+client_secret*.json
+# Arquivos gerados localmente
+dev/preview.html
+dev/prints/
+*.log
+.DS_Store
