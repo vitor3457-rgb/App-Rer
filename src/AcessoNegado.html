@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <style>
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        background: #f3f4f8;
+        color: #1f2330;
+        font-size: 18px;
+        line-height: 1.5;
+      }
+      .caixa {
+        max-width: 480px;
+        margin: 32px 16px;
+        padding: 24px;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
+      }
+      @media (min-width: 512px) { .caixa { margin: 32px auto; } }
+      h1 { font-size: 1.4rem; margin: 0 0 12px; color: #b3261e; }
+      .email { font-weight: 700; word-break: break-all; }
+      ol { padding-left: 1.2em; }
+      li { margin-bottom: 8px; }
+    </style>
+  </head>
+  <body>
+    <div class="caixa" role="alert">
+      <h1>Acesso não autorizado</h1>
+      <? if (email) { ?>
+        <p>Você entrou com a conta <span class="email"><?= email ?></span>, que não está
+        na lista de usuários do <strong><?= nomeApp ?></strong>.</p>
+      <? } else { ?>
+        <p>Não foi possível identificar a sua conta Google.</p>
+      <? } ?>
+      <p>O que fazer:</p>
+      <ol>
+        <li>Se você usa mais de uma conta Google no celular, abra o app com a conta certa
+        (ou saia das outras contas no navegador).</li>
+        <li>Se a conta está certa, peça ao responsável pelo app para incluir o seu e-mail
+        na lista de usuários autorizados.</li>
+      </ol>
+    </div>
+  </body>
+</html>
