@@ -92,12 +92,19 @@ function doGet() {
 
 /** Título, ícone e ajustes para celular. */
 function prepararPagina_(saida) {
-  saida
-    .setTitle(CONFIG.NOME_APP)
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
-    .addMetaTag('mobile-web-app-capable', 'yes')
-    .addMetaTag('apple-mobile-web-app-capable', 'yes')
-    .addMetaTag('apple-mobile-web-app-title', CONFIG.NOME_APP);
+  saida.setTitle(CONFIG.NOME_APP);
+  // O Google só aceita algumas meta tags; se alguma for recusada, a página abre mesmo assim.
+  [
+    ['viewport', 'width=device-width, initial-scale=1'],
+    ['mobile-web-app-capable', 'yes'],
+    ['apple-mobile-web-app-capable', 'yes'],
+  ].forEach(function (meta) {
+    try {
+      saida.addMetaTag(meta[0], meta[1]);
+    } catch (e) {
+      console.warn('Meta tag recusada (' + meta[0] + '): ' + mensagemDe_(e));
+    }
+  });
   if (CONFIG.ICONE_URL) {
     saida.setFaviconUrl(CONFIG.ICONE_URL);
   }

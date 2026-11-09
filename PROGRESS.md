@@ -24,7 +24,7 @@
 13. [ ] Entrega final: link do app, link da planilha, instruções.
 
 ## Estado atual
-- **Última etapa concluída:** 10 (app publicado — versão 1)
+- **Última etapa concluída:** 10 (app publicado — versão 3, corrigido o erro de meta tag)
 - **Link do app:** https://script.google.com/macros/s/AKfycbyNetmj8y6NDe4qPv2zHcu2cWk1pBs93e5z5v_NZjdbhfjaC73F_CAcdH01RoxPCQWwVg/exec
 - **Planilha:** https://docs.google.com/spreadsheets/d/1sYPLI4UyaGCvtKJIwI_OhJ3f08QFN0zPADB3qFVQIEg/edit
 - **Conta dona (clasp/planilha):** vitor3457@gmail.com · scriptId em `.clasp.json` · implantação em `deploy.json`
@@ -64,3 +64,6 @@ quando ele colar a URL de retorno, gravá-la em `url.txt`. Conferir com `npx cla
   `clasp create --type sheets` criou planilha + script vinculado; `.clasp.json` (rootDir src),
   Config.js com PLANILHA_ID e e-mail do dono; `npm run publicar` criou a implantação (deploy.json).
   Obs.: existe também a implantação @HEAD criada automaticamente pelo Google — não usar.
+- Correção: 1º acesso deu "A metatag especificada não é permitida" (apple-mobile-web-app-title não é aceita
+  pelo HtmlService). Removida; cada meta tag agora fica em try/catch. publicar.js passou a comparar a
+  versão online com os hashes do que foi publicado por último (deploy.json → arquivosPublicados).

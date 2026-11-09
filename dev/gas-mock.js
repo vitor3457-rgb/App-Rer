@@ -287,7 +287,13 @@
     function criarSaidaHtml(nome, template) {
       var s = { arquivo: nome, template: template, metas: {}, titulo: '', favicon: '' };
       s.setTitle = function (t) { s.titulo = t; return s; };
-      s.addMetaTag = function (n, c) { s.metas[n] = c; return s; };
+      s.addMetaTag = function (n, c) {
+        if ((opcoes.metasPermitidas || ['viewport', 'mobile-web-app-capable', 'apple-mobile-web-app-capable']).indexOf(n) < 0) {
+          throw new Error('A metatag especificada não é permitida neste contexto.');
+        }
+        s.metas[n] = c;
+        return s;
+      };
       s.setFaviconUrl = function (u) { s.favicon = u; return s; };
       s.getContent = function () { return opcoes.lerArquivo ? opcoes.lerArquivo(nome) : ''; };
       return s;

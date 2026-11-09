@@ -21,6 +21,7 @@ function novoApp(opcoes) {
   vm.runInContext(fs.readFileSync(path.join(__dirname, 'gas-mock.js'), 'utf8'), contexto, { filename: 'gas-mock.js' });
   var gas = contexto.criarAmbienteGAS({
     email: opcoes.email === undefined ? DONO : opcoes.email,
+    metasPermitidas: opcoes.metasPermitidas,
     lerArquivo: function (nome) { return fs.readFileSync(path.join(RAIZ, nome + '.html'), 'utf8'); },
   });
   ['SpreadsheetApp', 'LockService', 'Session', 'Utilities', 'HtmlService', 'console'].forEach(function (nome) {
@@ -197,6 +198,13 @@ teste('doGet: autorizado vê o app; não autorizado vê "Acesso não autorizado"
   var negado = outro.app.doGet({});
   assert.strictEqual(negado.arquivo, 'AcessoNegado');
   assert.strictEqual(negado.template.email, 'intruso@gmail.com');
+});
+
+teste('doGet abre mesmo se o Google recusar uma meta tag opcional', function () {
+  var t = novoApp({ metasPermitidas: ['viewport'] });
+  var pagina = t.app.doGet({});
+  assert.strictEqual(pagina.arquivo, 'Index');
+  assert.ok(pagina.metas.viewport);
 });
 
 teste('JSON da página não permite fechar a tag <script>', function () {

@@ -1,6 +1,15 @@
 {
   "deploymentId": "AKfycbyNetmj8y6NDe4qPv2zHcu2cWk1pBs93e5z5v_NZjdbhfjaC73F_CAcdH01RoxPCQWwVg",
   "url": "https://script.google.com/macros/s/AKfycbyNetmj8y6NDe4qPv2zHcu2cWk1pBs93e5z5v_NZjdbhfjaC73F_CAcdH01RoxPCQWwVg/exec",
-  "ultimaVersao": 1,
-  "ultimaPublicacao": "2026-11-09T02:01:30.309Z"
+  "ultimaVersao": 3,
+  "ultimaPublicacao": "2026-11-09T02:12:28.603Z",
+  "arquivosPublicados": {
+    "AcessoNegado.html": "2d7b3ebd6a1d3494",
+    "Codigo.js": "66b8c6be71a7274d",
+    "Config.js": "227d2d1ed6d7c8c8",
+    "Estilos.html": "b5342f81f6e94a61",
+    "Index.html": "2648e276decb046f",
+    "Script.html": "f894c144fba33b73",
+    "appsscript.json": "d21239534a0123fa"
+  }
 }

@@ -25,31 +25,32 @@ function clasp(args, pasta) {
   });
 }
 
+/** Resumo (hash) de cada arquivo, ignorando espaços no fim e a formatação do JSON. */
+function resumirPasta(pasta) {
+  var crypto = require('crypto');
+  var r = {};
+  fs.readdirSync(pasta).filter(function (f) { return f !== '.clasp.json'; }).sort().forEach(function (f) {
+    var t = fs.readFileSync(path.join(pasta, f), 'utf8');
+    t = /\.json$/.test(f) ? JSON.stringify(JSON.parse(t)) : t.replace(/\s+$/, '');
+    r[f] = crypto.createHash('sha256').update(t).digest('hex').slice(0, 16);
+  });
+  return r;
+}
+
 /**
  * Proteção: se alguém editou o código direto no site do Apps Script (ex.: para
  * incluir um e-mail), o push apagaria essa mudança. Então, antes de enviar,
- * baixamos a versão online e comparamos com a pasta src/.
+ * baixamos a versão online e comparamos com o que foi enviado na última publicação.
  */
-function conferirAlteracoesOnline() {
+function conferirAlteracoesOnline(publicados) {
   var scriptId = JSON.parse(fs.readFileSync(path.join(RAIZ, '.clasp.json'), 'utf8')).scriptId;
   var tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'clasp-conferir-'));
   try {
     fs.writeFileSync(path.join(tmp, '.clasp.json'), JSON.stringify({ scriptId: scriptId, rootDir: '.' }));
     clasp(['pull'], tmp);
-    var online = fs.readdirSync(tmp).filter(function (f) { return f !== '.clasp.json'; }).sort();
-    var local = fs.readdirSync(path.join(RAIZ, 'src')).sort();
-    var diferentes = [];
-    online.concat(local).forEach(function (f) {
-      if (diferentes.indexOf(f) >= 0) return;
-      var a = path.join(tmp, f);
-      var b = path.join(RAIZ, 'src', f);
-      if (!fs.existsSync(a) || !fs.existsSync(b)) { diferentes.push(f); return; }
-      var ta = fs.readFileSync(a, 'utf8');
-      var tb = fs.readFileSync(b, 'utf8');
-      var iguais = /\.json$/.test(f)
-        ? JSON.stringify(JSON.parse(ta)) === JSON.stringify(JSON.parse(tb))
-        : ta.replace(/\s+$/, '') === tb.replace(/\s+$/, '');
-      if (!iguais) diferentes.push(f);
+    var online = resumirPasta(tmp);
+    var diferentes = Object.keys(online).concat(Object.keys(publicados)).filter(function (f, i, todos) {
+      return todos.indexOf(f) === i && online[f] !== publicados[f];
     });
     return { diferentes: diferentes, pasta: tmp };
   } catch (e) {
@@ -67,11 +68,11 @@ function main() {
   var config = fs.existsSync(ARQUIVO_DEPLOY) ? JSON.parse(fs.readFileSync(ARQUIVO_DEPLOY, 'utf8')) : {};
 
   // Na primeira publicação o projeto online ainda tem só o arquivo de exemplo do Google.
-  if (config.deploymentId && !FORCAR) {
+  if (config.deploymentId && config.arquivosPublicados && !FORCAR) {
     console.log('0/2 Conferindo se alguém mudou o código direto no site do Google...');
-    var c = conferirAlteracoesOnline();
+    var c = conferirAlteracoesOnline(config.arquivosPublicados);
     if (c.diferentes.length) {
-      console.error('\nATENÇÃO: o código online é diferente do código local nestes arquivos: ' +
+      console.error('\nATENÇÃO: o código online foi alterado depois da última publicação nestes arquivos: ' +
         c.diferentes.join(', ') + '.\nA versão online foi baixada em: ' + c.pasta +
         '\nCompare, traga para src/ as mudanças que devem ficar e rode de novo ' +
         '(ou use "npm run publicar -- --forcar" para sobrescrever a versão online).');
@@ -94,6 +95,7 @@ function main() {
   config.url = 'https://script.google.com/macros/s/' + json.deploymentId + '/exec';
   config.ultimaVersao = json.versionNumber;
   config.ultimaPublicacao = new Date().toISOString();
+  config.arquivosPublicados = resumirPasta(path.join(RAIZ, 'src'));
   fs.writeFileSync(ARQUIVO_DEPLOY, JSON.stringify(config, null, 2) + '\n');
 
   console.log('\nPronto! Versão ' + json.versionNumber + ' publicada.');
