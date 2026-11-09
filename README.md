@@ -3,8 +3,8 @@
 App de celular para registrar **entradas** (dízimos e ofertas) e **saídas** (despesas) da igreja.
 Tudo fica gravado numa planilha do Google, que depois pode virar um painel (Looker Studio / Power BI).
 
-- **Link do app:** _(preenchido após a publicação — veja o `PROGRESS.md`)_
-- **Link da planilha:** _(preenchido após a publicação)_
+- **Link do app:** https://script.google.com/macros/s/AKfycbyNetmj8y6NDe4qPv2zHcu2cWk1pBs93e5z5v_NZjdbhfjaC73F_CAcdH01RoxPCQWwVg/exec
+- **Link da planilha:** https://docs.google.com/spreadsheets/d/1sYPLI4UyaGCvtKJIwI_OhJ3f08QFN0zPADB3qFVQIEg/edit (conta dona: vitor3457@gmail.com)
 
 Somente as contas Google autorizadas conseguem usar o app.
 

@@ -13,7 +13,7 @@ var CONFIG = {
    * - A pessoa também precisa ter acesso de EDITOR à planilha.
    */
   USUARIOS_AUTORIZADOS: [
-    'PREENCHER_EMAIL_DO_DONO@gmail.com',
+    'vitor3457@gmail.com',
     'PREENCHER_EMAIL_DO_TESOUREIRO@gmail.com',
   ],
 
@@ -28,7 +28,7 @@ var CONFIG = {
    * Preenchido automaticamente na publicação. Se ficar vazio, o app usa
    * a planilha à qual o script está vinculado.
    */
-  PLANILHA_ID: '',
+  PLANILHA_ID: '1sYPLI4UyaGCvtKJIwI_OhJ3f08QFN0zPADB3qFVQIEg',
 
   /** Nome que aparece no topo do app e na aba do navegador. */
   NOME_APP: 'Financeiro da Igreja',

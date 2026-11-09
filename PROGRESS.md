@@ -15,8 +15,8 @@
 7. [x] Pré-visualização local + testes de interface no Chromium (tamanho de celular).
 8. [x] Guia do usuário (`README.md`): instalar no Android, adicionar/remover usuário,
        adicionar o ano de 2027.
-9. [U] Ativar a API do Apps Script e fazer `clasp login` (passo a passo para o usuário).
-10. [ ] Criar planilha + projeto (`clasp create --type sheets`), `clasp push`, publicar
+9. [x] Ativar a API do Apps Script e fazer `clasp login` (passo a passo para o usuário).
+10. [x] Criar planilha + projeto (`clasp create --type sheets`), `clasp push`, publicar
         (`clasp deploy`), salvar IDs em `.clasp.json`/`deploy.json`/`Config.js`.
 11. [U] Primeiro acesso do dono: autorizar o app e fazer um lançamento de teste.
 12. [U] Informar o e-mail Google do tesoureiro → adicionar na lista, compartilhar a
@@ -24,22 +24,19 @@
 13. [ ] Entrega final: link do app, link da planilha, instruções.
 
 ## Estado atual
-- **Última etapa concluída:** 8
-- **Próximo passo exato:** etapa 9 — pedir ao usuário para ativar a API do Apps Script
-  (https://script.google.com/home/usersettings) e fazer o `clasp login --no-localhost`
-  (Claude roda o comando em segundo plano com um FIFO na entrada; o usuário abre a URL,
-  autoriza e cola no chat a URL `http://localhost:8888/?code=...` para onde o navegador foi).
+- **Última etapa concluída:** 10 (app publicado — versão 1)
+- **Link do app:** https://script.google.com/macros/s/AKfycbyNetmj8y6NDe4qPv2zHcu2cWk1pBs93e5z5v_NZjdbhfjaC73F_CAcdH01RoxPCQWwVg/exec
+- **Planilha:** https://docs.google.com/spreadsheets/d/1sYPLI4UyaGCvtKJIwI_OhJ3f08QFN0zPADB3qFVQIEg/edit
+- **Conta dona (clasp/planilha):** vitor3457@gmail.com · scriptId em `.clasp.json` · implantação em `deploy.json`
+- **Próximo passo exato:** etapa 11 — o dono abre o link do app, autoriza e faz um lançamento de teste
+  (a aba `Lancamentos` é criada no 1º lançamento, renomeando a "Página1").
+  Etapa 12 — com o e-mail do tesoureiro: trocar `PREENCHER_EMAIL_DO_TESOUREIRO@gmail.com` em
+  `src/Config.js`, rodar `npm run publicar -- "Inclui tesoureiro"`, compartilhar a planilha com ele (Editor).
 
 ## Pendências que dependem do usuário
-- **GitHub sem permissão de escrita** (push dá 403 "Resource not accessible by integration").
-  O usuário precisa liberar o repositório App-Rer no app do Claude no GitHub
-  (https://github.com/apps/claude/installations/select_target) ou reconectar em
-  https://claude.ai/connect-github. Enquanto isso os commits ficam só no container —
-  assim que liberar: `git push -u origin claude/church-finance-app-h1epmv`.
-- **Ativar a API do Apps Script**: https://script.google.com/home/usersettings → "API do Google Apps Script" → Ativada.
-- **clasp login**: pedido ao usuário (abrir a URL, autorizar, colar no chat a URL `http://localhost:8888/?...`).
-  Se a sessão mudar, refazer: rodar o driver em pty (veja abaixo) e pedir a URL de novo.
+- Testar o app (etapa 11) e contar se deu certo.
 - **E-mail Google do tesoureiro** (para a lista de autorizados e o compartilhamento da planilha).
+- Daqui de dentro do container não dá para abrir script.google.com (proxy bloqueia) — o teste real é com o usuário.
 
 ### Como refazer o login do clasp numa sessão nova
 Rodar em segundo plano um script Python que abre `node_modules/.bin/clasp login --no-localhost`
@@ -63,3 +60,7 @@ quando ele colar a URL de retorno, gravá-la em `url.txt`. Conferir com `npx cla
 - Etapa 8: README.md (primeiro acesso, instalar no Android, uso, adicionar/remover usuário,
   liberar 2027, problemas comuns, colunas para o dashboard). dev/publicar.js (push + atualiza a
   mesma implantação; antes confere se o código online foi editado no site e para se foi).
+- Etapas 9–10: API ativada e clasp login feitos pelo usuário (conta vitor3457@gmail.com).
+  `clasp create --type sheets` criou planilha + script vinculado; `.clasp.json` (rootDir src),
+  Config.js com PLANILHA_ID e e-mail do dono; `npm run publicar` criou a implantação (deploy.json).
+  Obs.: existe também a implantação @HEAD criada automaticamente pelo Google — não usar.

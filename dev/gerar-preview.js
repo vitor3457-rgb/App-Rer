@@ -31,6 +31,7 @@ var simulacao = [
   '  window.Utilities = gas.Utilities;',
   '  window.HtmlService = gas.HtmlService;',
   '  CONFIG.USUARIOS_AUTORIZADOS = ["dono@gmail.com", "tesoureiro@gmail.com"];',
+  '  CONFIG.PLANILHA_ID = ""; // na simulação, usa a planilha simulada',
   '  window.__offline = p.get("offline") === "1" || !!window.__OFFLINE;',
   '',
   '  // google.script.run simulado (assíncrono e com ida e volta em JSON, como o real)',
