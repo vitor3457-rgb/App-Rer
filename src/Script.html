@@ -24,6 +24,9 @@
     pedidoLista: 0,
     itens: [],
     excluindo: null,
+    responsavel: '',
+    opcaoAtiva: -1,
+    listaAtual: null,
     telaAtual: 'novo',
     historicoAtivo: false,
   };
@@ -83,10 +86,14 @@
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
-  function listarAnos() {
-    if (ANOS.length <= 1) return String(ANOS[0] || '');
-    return ANOS.slice(0, -1).join(', ') + ' ou ' + ANOS[ANOS.length - 1];
+  /** ['a', 'b', 'c'] -> "a, b ou c" */
+  function listarNomes(nomes) {
+    nomes = nomes.map(String);
+    if (nomes.length <= 1) return nomes[0] || '';
+    return nomes.slice(0, -1).join(', ') + ' ou ' + nomes[nomes.length - 1];
   }
+
+  function listarAnos() { return listarNomes(ANOS); }
 
   /** Traduz falhas de comunicação para mensagens claras. */
   function mensagemDeFalha(erro) {
@@ -208,6 +215,148 @@
     });
   }
 
+  // ---------- Responsável (caixa com lista que filtra ao digitar) ----------
+
+  var RESPONSAVEIS = D.responsaveis || [];
+  var campoResp = $('responsavel');
+  var listaResp = $('lista-responsaveis');
+
+  function semAcentos(texto) {
+    return String(texto || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  }
+
+  /** Nome exatamente como está na lista (sem diferenciar acento/maiúscula), ou ''. */
+  function nomeDaLista(texto) {
+    var alvo = semAcentos(texto);
+    for (var i = 0; i < RESPONSAVEIS.length; i++) {
+      if (semAcentos(RESPONSAVEIS[i]) === alvo) return RESPONSAVEIS[i];
+    }
+    return '';
+  }
+
+  function listaRespAberta() { return !listaResp.hidden; }
+
+  function abrirResponsaveis(filtrar) {
+    var termo = filtrar ? semAcentos(campoResp.value) : '';
+    var nomes = RESPONSAVEIS.filter(function (n) { return !termo || semAcentos(n).indexOf(termo) >= 0; });
+    // Quem começa com o que foi digitado aparece primeiro.
+    nomes.sort(function (a, b) {
+      return (semAcentos(a).indexOf(termo) === 0 ? 0 : 1) - (semAcentos(b).indexOf(termo) === 0 ? 0 : 1);
+    });
+    listaResp.innerHTML = '';
+    nomes.forEach(function (nome, i) {
+      var li = document.createElement('li');
+      li.id = 'resp-opcao-' + i;
+      li.className = 'combo-opcao';
+      li.setAttribute('role', 'option');
+      li.setAttribute('aria-selected', String(nome === estado.responsavel));
+      li.setAttribute('data-nome', nome);
+      li.textContent = nome;
+      li.addEventListener('mousedown', function (e) { e.preventDefault(); }); // não tira o foco do campo
+      li.addEventListener('click', function () { escolherResponsavel(nome); });
+      listaResp.appendChild(li);
+    });
+    if (!nomes.length) {
+      var vazio = document.createElement('li');
+      vazio.className = 'combo-vazio';
+      vazio.textContent = 'Nenhum nome encontrado. Escolha um nome da lista.';
+      listaResp.appendChild(vazio);
+    }
+    estado.opcaoAtiva = filtrar && nomes.length ? 0 : -1;
+    marcarOpcaoAtiva();
+    listaResp.hidden = false;
+    campoResp.setAttribute('aria-expanded', 'true');
+  }
+
+  function fecharResponsaveis() {
+    listaResp.hidden = true;
+    campoResp.setAttribute('aria-expanded', 'false');
+    campoResp.removeAttribute('aria-activedescendant');
+  }
+
+  function marcarOpcaoAtiva() {
+    var opcoes = listaResp.querySelectorAll('.combo-opcao');
+    opcoes.forEach(function (o, i) { o.classList.toggle('ativa', i === estado.opcaoAtiva); });
+    if (estado.opcaoAtiva >= 0 && opcoes[estado.opcaoAtiva]) {
+      campoResp.setAttribute('aria-activedescendant', opcoes[estado.opcaoAtiva].id);
+      opcoes[estado.opcaoAtiva].scrollIntoView({ block: 'nearest' });
+    } else {
+      campoResp.removeAttribute('aria-activedescendant');
+    }
+  }
+
+  function escolherResponsavel(nome) {
+    estado.respAnterior = nome;
+    campoResp.value = nome;
+    estado.responsavel = nome;
+    campoResp.classList.remove('com-erro');
+    fecharResponsaveis();
+    aoMudarFormulario();
+    campoResp.blur();
+  }
+
+  function prepararResponsavel() {
+    estado.responsavel = nomeDaLista(D.responsavelPadrao) || '';
+    campoResp.value = estado.responsavel;
+
+    // Ao tocar no campo, ele fica vazio (com o nome atual como dica) e a lista aparece
+    // inteira; digitar filtra. Se sair sem escolher ninguém, o nome anterior volta.
+    campoResp.addEventListener('focus', function () {
+      estado.respAnterior = estado.responsavel;
+      campoResp.placeholder = estado.responsavel || 'Digite ou escolha o nome';
+      campoResp.value = '';
+      abrirResponsaveis(false);
+    });
+    campoResp.addEventListener('click', function () { if (!listaRespAberta()) abrirResponsaveis(false); });
+    campoResp.addEventListener('input', function () {
+      estado.responsavel = nomeDaLista(campoResp.value);
+      campoResp.classList.remove('com-erro');
+      abrirResponsaveis(true);
+      aoMudarFormulario();
+    });
+    campoResp.addEventListener('keydown', function (e) {
+      var opcoes = listaResp.querySelectorAll('.combo-opcao');
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (!listaRespAberta()) abrirResponsaveis(false);
+        var total = opcoes.length;
+        if (!total) return;
+        estado.opcaoAtiva = (estado.opcaoAtiva + (e.key === 'ArrowDown' ? 1 : -1) + total) % total;
+        marcarOpcaoAtiva();
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        var escolhida = opcoes[estado.opcaoAtiva >= 0 ? estado.opcaoAtiva : 0];
+        if (escolhida && listaRespAberta()) escolherResponsavel(escolhida.getAttribute('data-nome'));
+        else campoResp.blur();
+      } else if (e.key === 'Escape') {
+        fecharResponsaveis();
+      }
+    });
+    campoResp.addEventListener('blur', function () {
+      // Pequena espera para o toque numa opção da lista chegar antes de fechar.
+      setTimeout(function () {
+        if (document.activeElement === campoResp) return;
+        fecharResponsaveis();
+        campoResp.placeholder = 'Digite ou escolha o nome';
+        if (!campoResp.value.trim() && estado.respAnterior) {
+          campoResp.value = estado.respAnterior; // não escolheu ninguém: mantém quem estava
+        }
+        var nome = nomeDaLista(campoResp.value);
+        estado.responsavel = nome;
+        if (nome) campoResp.value = nome;
+      }, 150);
+    });
+    $('abrir-responsaveis').addEventListener('mousedown', function (e) { e.preventDefault(); });
+    $('abrir-responsaveis').addEventListener('click', function () {
+      if (listaRespAberta()) { fecharResponsaveis(); campoResp.blur(); return; }
+      if (document.activeElement === campoResp) abrirResponsaveis(false);
+      else campoResp.focus();
+    });
+    document.addEventListener('click', function (e) {
+      if (listaRespAberta() && !$('combo-responsavel').contains(e.target)) fecharResponsaveis();
+    });
+  }
+
   function atualizarDataExtenso() {
     $('data-extenso').textContent = dataPorExtenso(campoData.value);
   }
@@ -230,6 +379,12 @@
   }
 
   function validarFormulario() {
+    if (!estado.responsavel) {
+      return {
+        erro: 'Escolha o responsável na lista (' + listarNomes(RESPONSAVEIS) + ').',
+        elemento: campoResp,
+      };
+    }
     if (!estado.centavos || estado.centavos <= 0) {
       return { erro: 'Digite o valor (maior que zero).', elemento: campoValor };
     }
@@ -266,6 +421,7 @@
         categoria: estado.tipo === 'Entrada' ? estado.categoria : 'Despesa',
         descricao: estado.tipo === 'Saída' ? descricao : '',
         dataReferencia: data,
+        responsavel: estado.responsavel,
       },
     };
   }
@@ -315,7 +471,8 @@
         }
         var d = v.dados;
         var resumo = escaparHtml(d.tipo) + ' · ' + escaparHtml(d.tipo === 'Entrada' ? d.categoria : d.descricao) +
-          ' · <strong>' + formatarReais(d.valorCentavos) + '</strong> · ' + dataBR(d.dataReferencia);
+          ' · <strong>' + formatarReais(d.valorCentavos) + '</strong> · ' + dataBR(d.dataReferencia) +
+          ' · ' + escaparHtml(d.responsavel);
         mostrarAviso((r.duplicado ? 'Este lançamento já estava salvo.' : 'Lançamento salvo!') + '<br>' + resumo);
         limparFormulario();
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -402,6 +559,8 @@
 
   function carregarLista() {
     var pedido = ++estado.pedidoLista;
+    estado.listaAtual = null;
+    definirExportacao(false);
     $('lista').innerHTML = '';
     $('resumo').hidden = true;
     mostrarEstadoLista(ICONE_CARREGANDO + '<div>Carregando lançamentos...</div>');
@@ -433,6 +592,8 @@
 
   function mostrarLista(r) {
     estado.itens = r.itens || [];
+    estado.listaAtual = r;
+    definirExportacao(true);
     var nomeMes = MESES[r.mes - 1] || '';
     var lista = $('lista');
     lista.innerHTML = '';
@@ -446,8 +607,8 @@
     estado.itens.forEach(function (item, indice) {
       var entrada = item.tipo === 'Entrada';
       var titulo = entrada ? item.categoria : (item.descricao || item.categoria);
-      var sub = entrada ? 'Entrada' : 'Saída';
-      if (item.usuario) sub += ' · por ' + nomeCurto(item.usuario);
+      var quem = item.responsavel || nomeCurto(item.usuario);
+      var sub = (entrada ? 'Entrada' : 'Saída') + (quem ? ' · por ' + quem : '');
 
       var li = document.createElement('li');
       li.className = 'item ' + (entrada ? 'entrada' : 'saida');
@@ -492,7 +653,8 @@
       '<div><strong>' + escaparHtml(item.tipo) + ' · ' + escaparHtml(entrada ? item.categoria : item.descricao) + '</strong></div>' +
       '<div>Valor: <strong>' + formatarReais(item.valorCentavos) + '</strong></div>' +
       '<div>Data: ' + dataBR(item.dataReferencia) + '</div>' +
-      (item.usuario ? '<div>Lançado por: ' + escaparHtml(item.usuario) + '</div>' : '');
+      (item.responsavel ? '<div>Responsável: ' + escaparHtml(item.responsavel) + '</div>' : '') +
+      (item.usuario ? '<div>Conta usada: ' + escaparHtml(item.usuario) + '</div>' : '');
     $('modal-confirmar').disabled = false;
     $('modal-confirmar').innerHTML = 'Sim, excluir';
     $('modal-fundo').hidden = false;
@@ -527,6 +689,297 @@
       });
   }
 
+  // ---------- Exportar para Excel e PDF ----------
+  // As planilhas/relatórios são gerados aqui no celular, com bibliotecas abertas
+  // baixadas da internet só quando necessário (versões fixas e conferidas por SRI).
+
+  var CDNS = ['https://cdn.jsdelivr.net/npm/', 'https://unpkg.com/'];
+  var BIBLIOTECAS = {
+    xlsx: {
+      arquivo: 'xlsx@0.18.5/dist/xlsx.mini.min.js',
+      sri: 'sha384-6fBkVFQw1YKyYpZpKf7bguegzeJqso45fTePEWGNuVaGy70fxEhICA/yswrPjW4+',
+      pronta: function () { return !!(window.XLSX && window.XLSX.utils); },
+    },
+    jspdf: {
+      arquivo: 'jspdf@2.5.2/dist/jspdf.umd.min.js',
+      sri: 'sha384-en/ztfPSRkGfME4KIm05joYXynqzUgbsG5nMrj/xEFAHXkeZfO3yMK8QQ+mP7p1/',
+      pronta: function () { return !!(window.jspdf && window.jspdf.jsPDF); },
+    },
+    autotable: {
+      depende: 'jspdf',
+      arquivo: 'jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js',
+      sri: 'sha384-Xl/CUCfJbzsngMp0CFxkmF0VW/8C160IsGujqeQlIhaGxKz2+JsIGORFqtCPeldF',
+      pronta: function () {
+        return !!(window.jspdf && window.jspdf.jsPDF && window.jspdf.jsPDF.API && window.jspdf.jsPDF.API.autoTable);
+      },
+    },
+  };
+  var carregamentos = {};
+
+  function carregarBiblioteca(nome) {
+    var b = BIBLIOTECAS[nome];
+    if (b.pronta()) return Promise.resolve();
+    if (!carregamentos[nome]) {
+      var antes = b.depende ? carregarBiblioteca(b.depende) : Promise.resolve();
+      carregamentos[nome] = antes
+        .then(function () { return baixarScript(b, 0); })
+        .catch(function (e) { delete carregamentos[nome]; throw e; });
+    }
+    return carregamentos[nome];
+  }
+
+  function baixarScript(b, indiceCdn) {
+    return new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = CDNS[indiceCdn] + b.arquivo;
+      s.integrity = b.sri;
+      s.crossOrigin = 'anonymous';
+      s.async = true;
+      s.onload = function () { if (b.pronta()) resolve(); else reject(new Error('incompleta')); };
+      s.onerror = function () { s.remove(); reject(new Error('falhou')); };
+      document.head.appendChild(s);
+    }).catch(function () {
+      if (indiceCdn + 1 < CDNS.length) return baixarScript(b, indiceCdn + 1);
+      throw new Error('Não foi possível carregar a ferramenta de exportação. Verifique a internet e tente de novo.');
+    });
+  }
+
+  function definirExportacao(habilitar) {
+    $('exportar-excel').disabled = !habilitar;
+    $('exportar-pdf').disabled = !habilitar;
+  }
+
+  function agoraBR() {
+    var d = new Date();
+    return doisDigitos(d.getDate()) + '/' + doisDigitos(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' +
+      doisDigitos(d.getHours()) + ':' + doisDigitos(d.getMinutes());
+  }
+
+  function itensEmOrdem(r) {
+    return (r.itens || []).slice().sort(function (a, b) {
+      if (a.dataReferencia !== b.dataReferencia) return a.dataReferencia < b.dataReferencia ? -1 : 1;
+      return (a.ordemLancamento || 0) - (b.ordemLancamento || 0);
+    });
+  }
+
+  /** Data no formato do Excel (dias desde 30/12/1899). */
+  function dataExcel(ano, mes, dia, hora, minuto, segundo) {
+    return (Date.UTC(ano, mes - 1, dia, hora || 0, minuto || 0, segundo || 0) - Date.UTC(1899, 11, 30)) / 86400000;
+  }
+
+  function nomeArquivo(r, tipo, extensao) {
+    var base = String(D.nomeApp || 'ADRER').replace(/[^A-Za-z0-9_-]+/g, '');
+    return base + '-' + tipo + '-' + r.ano + '-' + doisDigitos(r.mes) + '.' + extensao;
+  }
+
+  function gerarExcel(r) {
+    var X = window.XLSX;
+    var cabecalho = ['ID', 'Data/hora do lançamento', 'Data de referência', 'Ano', 'Mês', 'Tipo',
+      'Categoria', 'Descrição', 'Valor', 'Usuário', 'Responsável'];
+    var linhas = [cabecalho];
+    itensEmOrdem(r).forEach(function (i) {
+      var dh = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(i.dataHoraISO || '');
+      var dr = /^(\d{4})-(\d{2})-(\d{2})$/.exec(i.dataReferencia || '');
+      linhas.push([
+        i.id,
+        dh ? dataExcel(+dh[1], +dh[2], +dh[3], +dh[4], +dh[5], +dh[6]) : '',
+        dr ? dataExcel(+dr[1], +dr[2], +dr[3]) : (i.dataReferencia || ''),
+        i.ano, i.mes, i.tipo, i.categoria, i.descricao,
+        i.valorCentavos / 100,
+        i.usuario, i.responsavel || '',
+      ]);
+    });
+    var aba = X.utils.aoa_to_sheet(linhas);
+    function formato(linha, coluna, z) {
+      var c = aba[X.utils.encode_cell({ r: linha, c: coluna })];
+      if (c && c.t === 'n') c.z = z;
+    }
+    for (var l = 1; l < linhas.length; l++) {
+      formato(l, 1, 'dd/mm/yyyy hh:mm');
+      formato(l, 2, 'dd/mm/yyyy');
+      formato(l, 8, '#,##0.00');
+    }
+    aba['!cols'] = [38, 20, 14, 6, 5, 9, 10, 32, 12, 28, 13].map(function (w) { return { wch: w }; });
+    aba['!autofilter'] = { ref: X.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: linhas.length - 1, c: cabecalho.length - 1 } }) };
+
+    var t = r.totais || {};
+    var resumo = X.utils.aoa_to_sheet([
+      [D.nomeApp + ' - ' + D.nomeCompleto],
+      ['Lançamentos de ' + MESES[r.mes - 1] + ' de ' + r.ano],
+      [],
+      ['Dízimos', (t.dizimos || 0) / 100],
+      ['Ofertas', (t.ofertas || 0) / 100],
+      ['Total de entradas', (t.entradas || 0) / 100],
+      ['Total de saídas', (t.saidas || 0) / 100],
+      ['Saldo do mês', (t.saldo || 0) / 100],
+      [],
+      ['Quantidade de lançamentos', t.quantidade || 0],
+      ['Gerado em', agoraBR()],
+      ['Gerado por', D.email || ''],
+    ]);
+    for (var k = 3; k <= 7; k++) {
+      var c = resumo[X.utils.encode_cell({ r: k, c: 1 })];
+      if (c) c.z = '"R$" #,##0.00';
+    }
+    resumo['!cols'] = [{ wch: 28 }, { wch: 22 }];
+
+    var livro = X.utils.book_new();
+    X.utils.book_append_sheet(livro, aba, 'Lançamentos');
+    X.utils.book_append_sheet(livro, resumo, 'Resumo');
+    var dados = X.write(livro, { bookType: 'xlsx', type: 'array', compression: true });
+    return {
+      blob: new Blob([dados], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+      nome: nomeArquivo(r, 'lancamentos', 'xlsx'),
+    };
+  }
+
+  /** As fontes padrão do PDF só têm letras do português/europeu ocidental. */
+  function textoPdf(texto) {
+    return String(texto || '')
+      .replace(/[\u2013\u2014]/g, '-').replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"')
+      .replace(/\u2026/g, '...').replace(/[^\u0000-\u00FF]/g, '');
+  }
+
+  function gerarPdf(r) {
+    var doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' });
+    var largura = doc.internal.pageSize.getWidth();
+    var altura = doc.internal.pageSize.getHeight();
+    var M = 14;
+    var nomeMes = MESES[r.mes - 1];
+    var t = r.totais || {};
+    var VERDE = [26, 122, 56];
+    var VERMELHO = [192, 38, 45];
+    var ROCHA = [79, 70, 67];
+
+    try { doc.addImage(D.logoPdf, 'PNG', M, 9, 31, 24.6); } catch (e) { /* sem logo, segue */ }
+    var x = M + 37;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(22); doc.setTextColor(28, 23, 22);
+    doc.text(textoPdf(D.nomeApp), x, 17);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(107, 95, 92);
+    doc.text(textoPdf(D.nomeCompleto), x, 23);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(28, 23, 22);
+    doc.text(textoPdf('Relatório financeiro - ' + nomeMes + ' de ' + r.ano), x, 30.5);
+    doc.setDrawColor(255, 135, 8); doc.setLineWidth(1.2);
+    doc.line(M, 37, largura - M, 37);
+
+    doc.autoTable({
+      startY: 42,
+      margin: { left: M, right: M },
+      tableWidth: 105,
+      theme: 'plain',
+      styles: { fontSize: 11, cellPadding: 1.8, textColor: ROCHA },
+      body: [
+        ['Dízimos', formatarReais(t.dizimos || 0)],
+        ['Ofertas', formatarReais(t.ofertas || 0)],
+        ['Total de entradas', formatarReais(t.entradas || 0)],
+        ['Total de saídas', formatarReais(t.saidas || 0)],
+        ['Saldo do mês', formatarReais(t.saldo || 0)],
+      ],
+      columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } },
+      didParseCell: function (d) {
+        var negativo = (t.saldo || 0) < 0;
+        if (d.row.index === 2) d.cell.styles.textColor = VERDE;
+        if (d.row.index === 3) d.cell.styles.textColor = VERMELHO;
+        if (d.row.index === 4) {
+          d.cell.styles.fontStyle = 'bold';
+          d.cell.styles.textColor = negativo ? VERMELHO : VERDE;
+          d.cell.styles.fillColor = negativo ? [253, 233, 234] : [227, 244, 232];
+        }
+      },
+    });
+
+    var itens = itensEmOrdem(r);
+    doc.autoTable({
+      startY: doc.lastAutoTable.finalY + 8,
+      margin: { left: M, right: M, bottom: 18 },
+      head: [['Data', 'Tipo', 'Categoria', 'Descrição', 'Responsável', 'Valor']],
+      body: itens.map(function (i) {
+        return [
+          dataBR(i.dataReferencia), i.tipo, i.categoria, textoPdf(i.descricao),
+          textoPdf(i.responsavel || nomeCurto(i.usuario)),
+          (i.tipo === 'Entrada' ? '+ ' : '- ') + formatarReais(i.valorCentavos),
+        ];
+      }),
+      styles: { fontSize: 9.5, cellPadding: 2, overflow: 'linebreak', textColor: [28, 23, 22] },
+      headStyles: { fillColor: ROCHA, textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [246, 243, 242] },
+      columnStyles: {
+        0: { cellWidth: 22 }, 1: { cellWidth: 16 }, 2: { cellWidth: 21 },
+        4: { cellWidth: 27 }, 5: { cellWidth: 31, halign: 'right', fontStyle: 'bold' },
+      },
+      didParseCell: function (d) {
+        if (d.section === 'head' && d.column.index === 5) d.cell.styles.halign = 'right';
+        if (d.section === 'body' && d.column.index === 5) {
+          d.cell.styles.textColor = itens[d.row.index].tipo === 'Entrada' ? VERDE : VERMELHO;
+        }
+      },
+    });
+
+    var paginas = doc.getNumberOfPages();
+    var rodape = textoPdf('Gerado em ' + agoraBR() + ' por ' + (D.email || ''));
+    for (var p = 1; p <= paginas; p++) {
+      doc.setPage(p);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(107, 95, 92);
+      doc.text(rodape, M, altura - 8);
+      doc.text('Página ' + p + ' de ' + paginas, largura - M, altura - 8, { align: 'right' });
+    }
+    return { blob: doc.output('blob'), nome: nomeArquivo(r, 'relatorio', 'pdf') };
+  }
+
+  function baixarArquivo(blob, nome) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = nome;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { a.remove(); URL.revokeObjectURL(url); }, 60000);
+  }
+
+  function exportar(tipo) {
+    var r = estado.listaAtual;
+    if (!r) {
+      mostrarAviso('Aguarde a lista do mês terminar de carregar.', 'erro');
+      return;
+    }
+    if (!(r.itens || []).length) {
+      mostrarAviso('Não há lançamentos em ' + escaparHtml(MESES[r.mes - 1]) + ' de ' + r.ano + ' para exportar.', 'erro');
+      return;
+    }
+    var inicio = Date.now();
+    var botao = $(tipo === 'excel' ? 'exportar-excel' : 'exportar-pdf');
+    var conteudoBotao = botao.innerHTML;
+    botao.disabled = true;
+    botao.innerHTML = ICONE_CARREGANDO + ' Preparando...';
+
+    carregarBiblioteca(tipo === 'excel' ? 'xlsx' : 'autotable')
+      .then(function () {
+        // O navegador só deixa baixar logo depois do toque. Se a internet demorou,
+        // pede para tocar de novo (agora já está tudo pronto e é instantâneo).
+        if (Date.now() - inicio > 4000) {
+          mostrarAviso('Tudo pronto! Toque de novo em "Exportar" para baixar o arquivo.');
+          return;
+        }
+        var arquivo;
+        try {
+          arquivo = tipo === 'excel' ? gerarExcel(r) : gerarPdf(r);
+        } catch (e) {
+          throw new Error('Não foi possível gerar o arquivo. (Detalhe: ' + (e && e.message ? e.message : e) + ')');
+        }
+        baixarArquivo(arquivo.blob, arquivo.nome);
+        mostrarAviso('Arquivo baixado: <strong>' + escaparHtml(arquivo.nome) + '</strong><br>' +
+          'Ele fica na pasta Downloads do celular.');
+      })
+      .catch(function (e) {
+        mostrarAviso(escaparHtml(e && e.message ? e.message : String(e)), 'erro');
+      })
+      .then(function () {
+        botao.innerHTML = conteudoBotao;
+        botao.disabled = !estado.listaAtual;
+      });
+  }
+
   // =====================================================================
   //  Navegação entre as telas (com o botão "voltar" do Android)
   // =====================================================================
@@ -536,7 +989,14 @@
     $('tela-novo').hidden = tela !== 'novo';
     $('tela-lista').hidden = tela !== 'lista';
     window.scrollTo(0, 0);
-    if (tela === 'lista') carregarLista();
+    if (tela === 'lista') {
+      carregarLista();
+      // Já vai baixando as ferramentas de exportação, para o botão responder rápido.
+      setTimeout(function () {
+        carregarBiblioteca('xlsx').catch(function () {});
+        carregarBiblioteca('autotable').catch(function () {});
+      }, 800);
+    }
   }
 
   function temHistorico() {
@@ -588,6 +1048,10 @@
 
   function iniciar() {
     $('email-usuario').textContent = D.email || '';
+    prepararResponsavel();
+    definirExportacao(false);
+    $('exportar-excel').addEventListener('click', function () { exportar('excel'); });
+    $('exportar-pdf').addEventListener('click', function () { exportar('pdf'); });
 
     campoValor.addEventListener('input', aoDigitarValor);
     campoValor.addEventListener('focus', function () { setTimeout(cursorNoFim, 0); });

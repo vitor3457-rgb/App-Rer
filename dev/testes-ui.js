@@ -25,12 +25,34 @@ async function passo(nome, fn) {
   }
 }
 
+/**
+ * As bibliotecas de exportação vêm da internet (jsDelivr/unpkg). Aqui o acesso
+ * a esses sites é bloqueado, então servimos os MESMOS arquivos do node_modules
+ * (o SRI confere que são idênticos).
+ */
+var MODULOS = path.join(__dirname, '..', 'node_modules');
+async function servirBibliotecas(contexto, opcoes) {
+  await contexto.route(/^https:\/\/(cdn\.jsdelivr\.net\/npm|unpkg\.com)\/.*/, function (rota) {
+    var url = rota.request().url();
+    if (opcoes && opcoes.semInternet) return rota.abort();
+    var m = /\/(?:npm\/)?((?:@[^/]+\/)?[^/@]+)@[^/]+\/(.+)$/.exec(url.replace('https://cdn.jsdelivr.net', '').replace('https://unpkg.com', ''));
+    var arquivo = m && path.join(MODULOS, m[1], m[2]);
+    if (!arquivo || !fs.existsSync(arquivo)) return rota.fulfill({ status: 404, body: 'nao encontrado' });
+    return rota.fulfill({
+      status: 200,
+      path: arquivo,
+      headers: { 'content-type': 'application/javascript; charset=utf-8', 'access-control-allow-origin': '*' },
+    });
+  });
+}
+
 async function novaPagina(navegador, opcoes) {
   opcoes = opcoes || {};
   var contexto = await navegador.newContext(Object.assign(
     {}, opcoes.dispositivo || playwright.devices['Pixel 7'],
-    { locale: 'pt-BR', timezoneId: 'America/Sao_Paulo' }
+    { locale: 'pt-BR', timezoneId: 'America/Sao_Paulo', acceptDownloads: true }
   ));
+  await servirBibliotecas(contexto, opcoes);
   var pagina = await contexto.newPage();
   pagina.__erros = [];
   pagina.on('pageerror', function (e) { pagina.__erros.push(e.message); });
@@ -78,6 +100,9 @@ async function digitarValor(p, digitos) {
     assert.ok((await p.textContent('#data-extenso')).length > 5);
     assert.strictEqual(await p.textContent('#email-usuario'), 'dono@gmail.com');
     assert.strictEqual(await p.getAttribute('#valor', 'inputmode'), 'numeric');
+    assert.strictEqual(await p.inputValue('#responsavel'), 'Alex', 'responsável padrão');
+    assert.strictEqual(await p.textContent('.topo-titulo'), 'ADRER');
+    assert.ok(await p.$eval('.topo-logo', function (img) { return img.complete && img.naturalWidth > 0; }), 'logo carregou');
     await p.screenshot({ path: path.join(PRINTS, '1-tela-novo.png') });
   });
 
@@ -97,6 +122,52 @@ async function digitarValor(p, digitos) {
     assert.strictEqual(await p.inputValue('#valor'), '');
     await p.keyboard.type('abc');
     assert.strictEqual(await p.inputValue('#valor'), '');
+  });
+
+  await passo('responsável: lista abre, filtra ao digitar (sem acento) e escolhe', async function () {
+    await p.click('#responsavel');
+    await p.waitForSelector('#lista-responsaveis:not([hidden])');
+    var nomes = await p.$$eval('#lista-responsaveis .combo-opcao', function (els) { return els.map(function (e) { return e.textContent; }); });
+    assert.deepStrictEqual(nomes, ['Alex', 'Júlio', 'Gabriel', 'Lázaro']);
+    assert.strictEqual(await p.getAttribute('#lista-responsaveis [data-nome="Alex"]', 'aria-selected'), 'true');
+    await p.screenshot({ path: path.join(PRINTS, '1b-lista-responsaveis.png') });
+    await p.keyboard.type('laz');
+    nomes = await p.$$eval('#lista-responsaveis .combo-opcao', function (els) { return els.map(function (e) { return e.textContent; }); });
+    assert.deepStrictEqual(nomes, ['Lázaro']);
+    await p.click('#lista-responsaveis [data-nome="Lázaro"]');
+    assert.strictEqual(await p.inputValue('#responsavel'), 'Lázaro');
+    assert.strictEqual(await p.isVisible('#lista-responsaveis'), false);
+    // digitando e confirmando com Enter
+    await p.click('#responsavel');
+    await p.keyboard.type('GAB');
+    await p.keyboard.press('Enter');
+    assert.strictEqual(await p.inputValue('#responsavel'), 'Gabriel');
+    // nome fora da lista não é aceito
+    await p.click('#responsavel');
+    await p.keyboard.type('Pedro');
+    assert.ok(/Nenhum nome encontrado/.test(await p.textContent('#lista-responsaveis')));
+    await p.click('#titulo-novo');
+    await digitarValor(p, '100');
+    await p.click('[data-tipo="Entrada"]');
+    await p.click('[data-categoria="Oferta"]');
+    await p.click('#botao-salvar');
+    assert.ok(/Escolha o responsável na lista \(Alex, Júlio, Gabriel ou Lázaro\)/.test(await p.textContent('#erro-form')));
+    // o erro leva a pessoa ao campo, com a lista aberta; a setinha fecha e reabre
+    assert.strictEqual(await p.isVisible('#lista-responsaveis'), true);
+    await p.click('#abrir-responsaveis');
+    assert.strictEqual(await p.isVisible('#lista-responsaveis'), false);
+    await p.click('#abrir-responsaveis');
+    await p.click('#lista-responsaveis [data-nome="Alex"]');
+    assert.strictEqual(await p.inputValue('#responsavel'), 'Alex');
+    // tocar no campo e sair sem escolher mantém o nome
+    await p.click('#responsavel');
+    assert.strictEqual(await p.inputValue('#responsavel'), '');
+    assert.strictEqual(await p.getAttribute('#responsavel', 'placeholder'), 'Alex');
+    await p.click('#titulo-novo');
+    await p.waitForTimeout(250);
+    assert.strictEqual(await p.inputValue('#responsavel'), 'Alex');
+    await p.reload(); // formulário limpo para os próximos testes (nada foi gravado)
+    await p.waitForSelector('#botao-salvar');
   });
 
   await passo('validações aparecem em português', async function () {
@@ -131,6 +202,8 @@ async function digitarValor(p, digitos) {
     assert.strictEqual(linhas[1][5], 'Entrada');
     assert.strictEqual(linhas[1][6], 'Dízimo');
     assert.strictEqual(linhas[1][8], '50');
+    assert.strictEqual(linhas[1][10], 'Alex', 'responsável gravado');
+    assert.strictEqual(await p.inputValue('#responsavel'), 'Alex', 'responsável continua escolhido');
   });
 
   await passo('Saída exige descrição; sugestão preenche o campo; salva', async function () {
@@ -265,6 +338,72 @@ async function digitarValor(p, digitos) {
     await p.waitForSelector('#tela-novo:not([hidden])');
   });
 
+  await passo('lista mostra "por <responsável>"', async function () {
+    await p.click('#ir-lista');
+    await p.waitForSelector('#resumo:not([hidden])');
+    await p.selectOption('#filtro-mes', '11');
+    await p.waitForFunction(function () {
+      return document.querySelectorAll('#lista .item').length > 0 && !document.getElementById('resumo').hidden;
+    });
+    assert.ok(/por Alex/.test(await p.textContent('#lista')));
+  });
+
+  await passo('exportar Excel baixa o banco de dados do mês (.xlsx) com colunas e formatos certos', async function () {
+    await p.waitForFunction(function () { return !document.getElementById('exportar-excel').disabled; });
+    var esperando = p.waitForEvent('download');
+    await p.click('#exportar-excel');
+    var download = await esperando;
+    var nome = download.suggestedFilename();
+    assert.ok(/^ADRER-lancamentos-2026-\d{2}\.xlsx$/.test(nome), nome);
+    var XLSX = require('xlsx');
+    var livro = XLSX.readFile(await download.path(), { cellNF: true });
+    assert.deepStrictEqual(livro.SheetNames, ['Lançamentos', 'Resumo']);
+    var linhas = XLSX.utils.sheet_to_json(livro.Sheets['Lançamentos'], { header: 1, raw: true });
+    assert.deepStrictEqual(linhas[0], ['ID', 'Data/hora do lançamento', 'Data de referência', 'Ano', 'Mês',
+      'Tipo', 'Categoria', 'Descrição', 'Valor', 'Usuário', 'Responsável']);
+    var esperadas = await p.evaluate(function () { return document.querySelectorAll('#lista .item').length; });
+    assert.strictEqual(linhas.length - 1, esperadas);
+    var a2 = livro.Sheets['Lançamentos'].C2;
+    assert.strictEqual(a2.t, 'n');
+    assert.strictEqual(a2.z, 'dd/mm/yyyy');
+    assert.ok(/^\d{2}\/\d{2}\/2026$/.test(XLSX.SSF.format(a2.z, a2.v)), XLSX.SSF.format(a2.z, a2.v));
+    assert.strictEqual(typeof linhas[1][8], 'number');
+    assert.strictEqual(linhas[1][10], 'Alex');
+    var resumo = XLSX.utils.sheet_to_json(livro.Sheets.Resumo, { header: 1, raw: true });
+    assert.ok(/ADRER - Assembleia de Deus Rocha Eterna dos Remidos/.test(resumo[0][0]));
+    assert.strictEqual(resumo[7][0], 'Saldo do mês');
+    var saldoTela = await p.textContent('#t-saldo');
+    assert.strictEqual(saldoTela.replace(/[^\d,-]/g, '').replace(',', '.').replace('-', ''),
+      Math.abs(resumo[7][1]).toFixed(2), 'saldo igual ao da tela');
+    assert.ok(/baixado/.test(await textoAviso(p)));
+  });
+
+  await passo('exportar PDF baixa o relatório do mês', async function () {
+    await limparAviso(p);
+    var esperando = p.waitForEvent('download');
+    await p.click('#exportar-pdf');
+    var download = await esperando;
+    assert.ok(/^ADRER-relatorio-2026-\d{2}\.pdf$/.test(download.suggestedFilename()), download.suggestedFilename());
+    var conteudo = fs.readFileSync(await download.path());
+    fs.writeFileSync(path.join(PRINTS, 'relatorio-teste.pdf'), conteudo);
+    var texto = conteudo.toString('latin1');
+    assert.strictEqual(texto.slice(0, 5), '%PDF-');
+    ['ADRER', 'Assembleia de Deus Rocha Eterna dos Remidos', 'Relatório financeiro', 'Saldo do mês',
+      'Responsável', 'Alex', 'Página 1 de 1', '/Subtype /Image'].forEach(function (trecho) {
+      assert.ok(texto.indexOf(trecho) >= 0, 'PDF deveria conter "' + trecho + '"');
+    });
+  });
+
+  await passo('mês sem lançamentos: exportar avisa em vez de baixar arquivo vazio', async function () {
+    await p.selectOption('#filtro-mes', '1');
+    await p.waitForFunction(function () { return /Nenhum lançamento/.test(document.getElementById('estado-lista').textContent); });
+    await limparAviso(p);
+    await p.click('#exportar-excel');
+    assert.ok(/Não há lançamentos em Janeiro de 2026/.test(await textoAviso(p)));
+    await p.click('#voltar');
+    await p.waitForSelector('#tela-novo:not([hidden])');
+  });
+
   await passo('nenhum erro de JavaScript na página', async function () {
     assert.deepStrictEqual(p.__erros, []);
   });
@@ -285,6 +424,13 @@ async function digitarValor(p, digitos) {
       await q.click('#ir-lista');
       await q.waitForSelector('#resumo:not([hidden])');
       await q.screenshot({ path: path.join(PRINTS, '8-' + nome + '-lista.png'), fullPage: true });
+      if (nome === 'pixel7') {
+        // relatório com os dados de exemplo, para conferência visual
+        var esperandoPdf = q.waitForEvent('download');
+        await q.waitForFunction(function () { return !document.getElementById('exportar-pdf').disabled; });
+        await q.click('#exportar-pdf');
+        fs.copyFileSync(await (await esperandoPdf).path(), path.join(PRINTS, 'relatorio-exemplo.pdf'));
+      }
       var larguraExtra = await q.evaluate(function () {
         return document.documentElement.scrollWidth - document.documentElement.clientWidth;
       });
@@ -292,6 +438,38 @@ async function digitarValor(p, digitos) {
       assert.deepStrictEqual(q.__erros, []);
       await q.context().close();
     }
+  });
+
+  await passo('dentro de um iframe com sandbox (como no Google), o download funciona', async function () {
+    var host = path.join(__dirname, 'preview-iframe.html');
+    fs.writeFileSync(host, '<!doctype html><meta charset="utf-8"><iframe id="app" style="width:412px;height:860px;border:0" ' +
+      'sandbox="allow-downloads allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts" ' +
+      'src="preview.html?latencia=50&exemplos=1"></iframe>');
+    var contexto = await navegador.newContext({ acceptDownloads: true, locale: 'pt-BR', timezoneId: 'America/Sao_Paulo' });
+    await servirBibliotecas(contexto);
+    var q = await contexto.newPage();
+    await q.goto('file://' + host);
+    var f = q.frameLocator('#app');
+    await f.locator('#ir-lista').click();
+    await f.locator('#resumo:not([hidden])').waitFor();
+    await q.waitForTimeout(300);
+    var esperando = q.waitForEvent('download');
+    await f.locator('#exportar-excel').click();
+    var d = await esperando;
+    assert.ok(/\.xlsx$/.test(d.suggestedFilename()));
+    await contexto.close();
+  });
+
+  await passo('sem internet para baixar a ferramenta: mensagem clara', async function () {
+    var q = await novaPagina(navegador, { exemplos: true, semInternet: true });
+    await q.click('#ir-lista');
+    await q.waitForSelector('#resumo:not([hidden])');
+    await limparAviso(q);
+    await q.click('#exportar-pdf');
+    var aviso = await textoAviso(q);
+    assert.ok(/Não foi possível carregar a ferramenta de exportação/.test(aviso), aviso);
+    assert.strictEqual(await q.isEnabled('#exportar-pdf'), true);
+    await q.context().close();
   });
 
   await navegador.close();

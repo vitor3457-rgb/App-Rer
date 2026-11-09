@@ -7,10 +7,11 @@
   </head>
   <body>
     <header class="topo">
-      <svg class="topo-icone" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M11 2h2v3h3v2h-3v2.4l7 4V22h-6v-4a2 2 0 0 0-4 0v4H4v-8.6l7-4V7H8V5h3z" fill="currentColor"/>
-      </svg>
-      <span class="topo-titulo"><?= nomeApp ?></span>
+      <img class="topo-logo" src="<?!= logoCabecalho ?>" alt="Logo da igreja" width="82" height="48">
+      <div class="topo-textos">
+        <span class="topo-titulo"><?= nomeApp ?></span>
+        <span class="topo-subtitulo">Controle financeiro</span>
+      </div>
     </header>
 
     <main class="conteudo">
@@ -19,6 +20,21 @@
         <h1 id="titulo-novo" class="titulo-tela">Novo lançamento</h1>
 
         <form id="form-lancamento" class="cartao" novalidate autocomplete="off">
+          <div class="campo">
+            <label for="responsavel" class="rotulo">Responsável</label>
+            <div class="combo" id="combo-responsavel">
+              <input id="responsavel" class="entrada combo-entrada" type="text" role="combobox"
+                     aria-autocomplete="list" aria-expanded="false" aria-controls="lista-responsaveis"
+                     autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="done"
+                     placeholder="Digite ou escolha o nome">
+              <button type="button" id="abrir-responsaveis" class="combo-botao" tabindex="-1"
+                      aria-label="Mostrar a lista de responsáveis">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5z" fill="currentColor"/></svg>
+              </button>
+              <ul id="lista-responsaveis" class="combo-lista" role="listbox" aria-label="Responsáveis" hidden></ul>
+            </div>
+          </div>
+
           <div class="campo">
             <label for="valor" class="rotulo">Valor</label>
             <input id="valor" class="entrada entrada-valor" type="text" inputmode="numeric"
@@ -100,6 +116,18 @@
             <label for="filtro-ano" class="rotulo">Ano</label>
             <select id="filtro-ano" class="entrada seletor"></select>
           </div>
+        </div>
+
+        <span class="exportar-rotulo" id="rotulo-exportar">Exportar este mês para:</span>
+        <div class="exportar" role="group" aria-labelledby="rotulo-exportar">
+          <button type="button" id="exportar-excel" class="botao botao-exportar" aria-label="Exportar para Excel">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zm-1 7V3.5L18.5 9zM8.3 18l2.4-3.5L8.4 11h2l1.4 2.2 1.4-2.2h2l-2.3 3.5 2.4 3.5h-2l-1.5-2.3-1.5 2.3z" fill="#1d6f42"/></svg>
+            Excel
+          </button>
+          <button type="button" id="exportar-pdf" class="botao botao-exportar" aria-label="Exportar para PDF">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zm-1 7V3.5L18.5 9zM7 13h2a1.5 1.5 0 0 1 0 3H8v2H7zm1 1v1h1a.5.5 0 0 0 0-1zm3-1h1.5a2 2 0 0 1 2 2v1a2 2 0 0 1-2 2H11zm1 1v3h.5a1 1 0 0 0 1-1v-1a1 1 0 0 0-1-1zm3-1h3v1h-2v1h1.5v1H16v2h-1z" fill="#c0262d"/></svg>
+            PDF
+          </button>
         </div>
 
         <div id="estado-lista" class="estado-lista" role="status" aria-live="polite"></div>

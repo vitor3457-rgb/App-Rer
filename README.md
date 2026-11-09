@@ -1,4 +1,6 @@
-# Financeiro da Igreja
+# ADRER — Controle financeiro
+
+**Assembleia de Deus Rocha Eterna dos Remidos**
 
 App de celular para registrar **entradas** (dízimos e ofertas) e **saídas** (despesas) da igreja.
 Tudo fica gravado numa planilha do Google, que depois pode virar um painel (Looker Studio / Power BI).
@@ -16,7 +18,7 @@ Somente as contas Google autorizadas conseguem usar o app.
 2. Na primeira vez, o Google pede autorização. Toque em **Revisar permissões** e escolha a sua conta.
 3. Vai aparecer o aviso **"O Google não verificou este app"**. É normal: o app foi feito
    para uso interno da igreja e não passou pela verificação pública do Google.
-   Toque em **Avançado** e depois em **Acessar Financeiro da Igreja (não seguro)**.
+   Toque em **Avançado** e depois em **Acessar** o app (aparece como "não seguro").
 4. Toque em **Permitir**. O app permite:
    - ver o seu e-mail, para saber quem fez cada lançamento;
    - ler e gravar a planilha da igreja.
@@ -26,7 +28,7 @@ Somente as contas Google autorizadas conseguem usar o app.
 
 1. Com o app aberto no **Chrome**, toque nos **três pontinhos ⋮** (canto superior direito).
 2. Toque em **Adicionar à tela inicial**. Em alguns celulares, o nome é **Instalar app**.
-3. Confirme o nome (ex.: "Financeiro") e toque em **Adicionar**.
+3. Confirme o nome (ex.: "ADRER") e toque em **Adicionar**.
    Se o celular perguntar, toque em **Adicionar automaticamente** ou arraste o ícone para a tela.
 4. A partir daí, é só tocar no ícone, como em qualquer outro app.
 
@@ -36,12 +38,17 @@ Somente as contas Google autorizadas conseguem usar o app.
 ## 3. Como usar
 
 ### Novo lançamento (tela inicial)
+1. **Responsável**: já vem com **Alex**. Para trocar, toque na caixa: aparece a lista
+   (Alex, Júlio, Gabriel, Lázaro). Toque no nome, ou comece a digitar para filtrar
+   (ex.: `laz` → Lázaro). O nome escolhido continua marcado nos próximos lançamentos
+   até o app ser fechado.
 1. **Valor**: digite só os números. Exemplo: para R$ 50,00, digite `5`, `0`, `0`, `0`.
 2. Toque em **Entrada** ou **Saída**.
    - **Entrada**: escolha **Dízimo** ou **Oferta**.
    - **Saída**: escreva a **descrição da despesa** (ex.: aluguel, água, luz) ou toque numa sugestão.
 3. **Data**: já vem com a data de hoje. Toque para mudar, se precisar.
-4. Toque em **Salvar**. Aparece a mensagem **"Lançamento salvo!"** e o formulário fica limpo.
+4. Toque em **Salvar**. Aparece a mensagem **"Lançamento salvo!"** e o formulário fica limpo
+   (o responsável continua escolhido).
 
 ### Lançamentos do mês
 - Toque em **Ver lançamentos do mês**.
@@ -51,6 +58,13 @@ Somente as contas Google autorizadas conseguem usar o app.
 - **Excluir um lançamento errado**: toque na **lixeira** ao lado dele e confirme em **Sim, excluir**.
   O lançamento sai da lista, mas fica guardada uma cópia na aba **Excluidos** da planilha
   (com quem excluiu e quando).
+- **Exportar o mês**: escolha o mês e toque em **Excel** ou **PDF** (em "Exportar este mês para").
+  - **Excel**: baixa o arquivo `ADRER-lancamentos-AAAA-MM.xlsx` com todos os lançamentos do mês
+    (mesmas colunas da planilha) e uma aba **Resumo** com os totais.
+  - **PDF**: baixa o relatório `ADRER-relatorio-AAAA-MM.pdf` com o logo, os totais e a lista do mês.
+  - O arquivo vai para a pasta **Downloads** do celular (aparece também na notificação).
+  - Na primeira vez, o app baixa a ferramenta de exportação da internet. Se a internet estiver lenta,
+    pode aparecer "Tudo pronto! Toque de novo em Exportar" — é só tocar de novo.
 - Para voltar, toque em **Voltar** ou use o botão "voltar" do celular.
 
 ## 4. Adicionar ou remover um usuário autorizado
@@ -87,6 +101,16 @@ Você só precisa compartilhar a planilha (passo B abaixo).
 
 > Use o e-mail da **conta Google** com que a pessoa entra no celular.
 
+## 4.1 Mudar a lista de responsáveis (Alex, Júlio, Gabriel, Lázaro)
+
+Peça ao Claude (ex.: _"inclua a Maria na lista de responsáveis"_) ou siga o passo **4A**,
+mas edite estas linhas do **Config.gs**:
+```
+RESPONSAVEIS: ['Alex', 'Júlio', 'Gabriel', 'Lázaro'],
+RESPONSAVEL_PADRAO: 'Alex',
+```
+`RESPONSAVEL_PADRAO` é o nome que já vem escolhido quando o app abre.
+
 ## 5. Começo de 2027: liberar o novo ano
 
 O app aceita lançamentos e mostra lançamentos só dos anos configurados (hoje: **2026**).
@@ -120,7 +144,8 @@ Com mais de um ano, a tela **Lançamentos do mês** passa a mostrar também a es
   | Categoria | `Dízimo`, `Oferta` ou `Despesa` |
   | Descrição | texto da despesa (vazio nas entradas) |
   | Valor | número positivo com 2 casas decimais |
-  | Usuário | e-mail de quem lançou |
+  | Usuário | e-mail da conta Google usada no lançamento |
+  | Responsável | pessoa escolhida no app (Alex, Júlio, Gabriel, Lázaro...) |
 
 - Aba **`Excluidos`**: cópia dos lançamentos excluídos (não use no painel).
 - **Não mude os títulos da linha 1** nem a ordem das colunas: o app confere isso antes de gravar.

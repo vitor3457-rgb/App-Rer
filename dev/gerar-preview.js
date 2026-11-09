@@ -17,6 +17,7 @@ function semScript(texto) { return texto.replace(/<\/script/gi, '<\\/script'); }
 var simulacao = [
   '<script>' + semScript(ler(path.join(__dirname, 'gas-mock.js'))) + '</script>',
   '<script>' + semScript(ler(path.join(SRC, 'Config.js'))) + '</script>',
+  '<script>' + semScript(ler(path.join(SRC, 'Logo.js'))) + '</script>',
   '<script>' + semScript(ler(path.join(SRC, 'Codigo.js'))) + '</script>',
   '<script>',
   '(function () {',
@@ -77,7 +78,7 @@ var simulacao = [
   '      ["08", 9850, "Saída", "Despesa", "Material de limpeza e manutenção do banheiro"]',
   '    ].forEach(function (x, i) {',
   '      gas._definirEmail(i % 3 === 2 ? "tesoureiro@gmail.com" : "dono@gmail.com");',
-  '      salvarLancamento({ valorCentavos: x[1], tipo: x[2], categoria: x[3], descricao: x[4], dataReferencia: hoje + "-" + x[0] });',
+  '      salvarLancamento({ valorCentavos: x[1], tipo: x[2], categoria: x[3], descricao: x[4], dataReferencia: hoje + "-" + x[0], responsavel: ["Alex", "Júlio", "Gabriel", "Lázaro"][i % 4] });',
   '    });',
   '    gas._definirEmail(email);',
   '  }',
@@ -87,11 +88,14 @@ var simulacao = [
 
 function gerar(destino) {
   var html = ler(path.join(SRC, 'Index.html'));
-  var nomeApp = 'Financeiro da Igreja';
+  var nomeApp = 'ADRER';
+  var contexto = {};
+  require('vm').runInNewContext(ler(path.join(SRC, 'Logo.js')), contexto);
   html = html
     .replace("<?!= incluir_('Estilos'); ?>", function () { return ler(path.join(SRC, 'Estilos.html')); })
     .replace("<?!= incluir_('Script'); ?>", function () { return ler(path.join(SRC, 'Script.html')); })
     .replace(/<\?= nomeApp \?>/g, nomeApp)
+    .replace('<?!= logoCabecalho ?>', function () { return contexto.LOGO.cabecalho; })
     .replace('<?!= dadosJson ?>', 'dadosIniciais_(Session.getActiveUser().getEmail())')
     .replace('<head>', function () {
       return '<head>\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>' +

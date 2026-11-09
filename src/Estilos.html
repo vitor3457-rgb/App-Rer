@@ -1,20 +1,24 @@
 <style>
   :root {
-    --fundo: #f2f4f8;
+    /* Cores do logo da igreja: laranja, cinza da rocha e preto */
+    --laranja: #ff8708;
+    --laranja-escuro: #e87400;
+    --laranja-clara: #fff0e0;
+    --fundo: #f6f3f2;
     --cartao: #ffffff;
-    --texto: #1c2030;
-    --texto-suave: #5a6072;
-    --borda: #cfd4e0;
-    --primaria: #2f3e9e;
-    --primaria-escura: #23307d;
-    --primaria-clara: #e8ebfa;
+    --texto: #1c1716;
+    --texto-suave: #6b5f5c;
+    --borda: #d8cfcc;
+    --primaria: #4f4643;          /* cinza-escuro da rocha */
+    --primaria-escura: #3a3230;
+    --primaria-clara: #ece6e4;
     --entrada: #1a7a38;
     --entrada-clara: #e3f4e8;
     --saida: #c0262d;
     --saida-clara: #fde9ea;
-    --foco: #ffb300;
+    --foco: #c45c00;
     --raio: 14px;
-    --sombra: 0 1px 3px rgba(20, 24, 40, .08), 0 2px 10px rgba(20, 24, 40, .05);
+    --sombra: 0 1px 3px rgba(40, 28, 24, .08), 0 2px 10px rgba(40, 28, 24, .05);
   }
 
   * { box-sizing: border-box; }
@@ -44,13 +48,16 @@
 
   /* ---------- Topo ---------- */
   .topo {
-    display: flex; align-items: center; gap: 10px;
-    padding: 14px 16px;
-    background: var(--primaria);
-    color: #fff;
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px;
+    background: #fff;
+    border-bottom: 5px solid var(--laranja);
+    box-shadow: 0 2px 8px rgba(40, 28, 24, .08);
   }
-  .topo-icone { width: 28px; height: 28px; }
-  .topo-titulo { font-size: 1.15rem; font-weight: 700; letter-spacing: .2px; }
+  .topo-logo { height: 48px; width: auto; display: block; }
+  .topo-textos { display: flex; flex-direction: column; line-height: 1.1; }
+  .topo-titulo { font-size: 1.7rem; font-weight: 900; letter-spacing: 1.5px; color: var(--texto); }
+  .topo-subtitulo { font-size: .85rem; font-weight: 600; color: var(--texto-suave); letter-spacing: .3px; }
 
   .conteudo { max-width: 560px; margin: 0 auto; padding: 16px 16px 120px; }
   .titulo-tela { font-size: 1.45rem; margin: 4px 0 14px; }
@@ -76,7 +83,7 @@
     background: #fff;
     font-size: 1.1rem;
   }
-  .entrada:focus { border-color: var(--primaria); outline: none; box-shadow: 0 0 0 3px var(--primaria-clara); }
+  .entrada:focus { border-color: var(--laranja); outline: none; box-shadow: 0 0 0 3px var(--laranja-clara); }
   .entrada.com-erro { border-color: var(--saida); box-shadow: 0 0 0 3px var(--saida-clara); }
 
   .entrada-valor {
@@ -110,6 +117,32 @@
     background: var(--fundo); font-size: 1rem;
   }
 
+  /* ---------- Caixa de escolha do responsável ---------- */
+  .combo { position: relative; }
+  .combo-entrada { padding-right: 56px; font-weight: 700; }
+  .combo-botao {
+    position: absolute; top: 4px; right: 4px; bottom: 4px; width: 48px;
+    display: flex; align-items: center; justify-content: center;
+    border: none; border-radius: 9px; background: var(--primaria-clara); color: var(--primaria);
+  }
+  .combo-botao svg { width: 30px; height: 30px; }
+  .combo-lista {
+    position: absolute; z-index: 15; left: 0; right: 0; top: calc(100% + 4px);
+    margin: 0; padding: 6px; list-style: none;
+    background: #fff; border: 2px solid var(--borda); border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(40, 28, 24, .18);
+    max-height: 280px; overflow-y: auto;
+  }
+  .combo-opcao {
+    display: flex; align-items: center; justify-content: space-between;
+    min-height: 52px; padding: 10px 14px; border-radius: 9px;
+    font-size: 1.1rem; font-weight: 600; cursor: pointer;
+  }
+  .combo-opcao[aria-selected="true"] { background: var(--laranja-clara); }
+  .combo-opcao.ativa { background: var(--primaria-clara); }
+  .combo-opcao .marca { color: var(--laranja-escuro); font-weight: 800; }
+  .combo-vazio { padding: 12px 14px; color: var(--texto-suave); }
+
   /* ---------- Botões gerais ---------- */
   .botao {
     display: flex; align-items: center; justify-content: center; gap: 10px;
@@ -117,8 +150,11 @@
     border-radius: 12px; border: 2px solid transparent;
     font-size: 1.15rem; font-weight: 700;
   }
-  .botao-principal { background: var(--primaria); color: #fff; font-size: 1.3rem; min-height: 64px; }
-  .botao-principal:active { background: var(--primaria-escura); }
+  .botao-principal {
+    background: var(--laranja); color: var(--texto); font-size: 1.3rem; font-weight: 800; min-height: 64px;
+    box-shadow: 0 2px 0 var(--laranja-escuro);
+  }
+  .botao-principal:active { background: var(--laranja-escuro); }
   .botao-principal:disabled { opacity: .7; cursor: wait; }
   .botao-secundario { background: #fff; color: var(--primaria); border-color: var(--primaria); margin-top: 16px; }
   .botao-perigo { background: var(--saida); color: #fff; }
@@ -159,6 +195,15 @@
     border: 2px solid var(--borda); border-radius: 12px; background: #fff; color: var(--primaria);
   }
   .botao-seta:disabled { opacity: .35; }
+
+  .exportar-rotulo { display: block; font-weight: 700; font-size: .95rem; color: var(--texto-suave); margin: -2px 0 6px 2px; }
+  .exportar { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 14px; }
+  .botao-exportar {
+    min-height: 54px; padding: 8px 10px; gap: 8px; font-size: 1.1rem; white-space: nowrap;
+    background: #fff; color: var(--primaria); border-color: var(--borda);
+  }
+  .botao-exportar:active { background: var(--primaria-clara); }
+  .botao-exportar:disabled { opacity: .5; }
 
   .estado-lista { text-align: center; color: var(--texto-suave); padding: 0 8px; }
   .estado-lista:not(:empty) { padding: 28px 8px; }
