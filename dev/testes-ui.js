@@ -185,9 +185,17 @@ async function digitarValor(p, digitos) {
     await p.screenshot({ path: path.join(PRINTS, '2-erro-validacao.png') });
   });
 
-  await passo('salva uma Entrada (Dízimo), mostra confirmação e limpa o formulário', async function () {
+  await passo('dízimo exige o nome de quem contribuiu', async function () {
     await p.click('[data-categoria="Dízimo"]');
     assert.strictEqual(await p.getAttribute('[data-categoria="Dízimo"]', 'aria-pressed'), 'true');
+    assert.strictEqual(await p.isVisible('#bloco-contribuinte'), true);
+    assert.strictEqual(await p.isVisible('#contribuinte-opcional'), false);
+    await p.click('#botao-salvar');
+    assert.ok(/nome de quem deu o dízimo/.test(await p.textContent('#erro-form')));
+  });
+
+  await passo('salva uma Entrada (Dízimo), mostra confirmação e limpa o formulário', async function () {
+    await p.fill('#contribuinte', 'Silvana');
     await limparAviso(p);
     await p.click('#botao-salvar');
     var aviso = await textoAviso(p);
@@ -203,7 +211,29 @@ async function digitarValor(p, digitos) {
     assert.strictEqual(linhas[1][6], 'Dízimo');
     assert.strictEqual(linhas[1][8], '50');
     assert.strictEqual(linhas[1][10], 'Alex', 'responsável gravado');
+    assert.strictEqual(linhas[1][7], 'Silvana', 'nome de quem contribuiu fica na Descrição');
+    assert.strictEqual(await p.inputValue('#contribuinte'), '');
     assert.strictEqual(await p.inputValue('#responsavel'), 'Alex', 'responsável continua escolhido');
+  });
+
+  await passo('nome salvo vira sugestão; digitar filtra; tocar preenche', async function () {
+    await p.click('[data-tipo="Entrada"]');
+    await p.click('[data-categoria="Oferta"]');
+    assert.strictEqual(await p.isVisible('#contribuinte-opcional'), true);
+    var chips = await p.$$eval('#sugestoes-contribuinte .sugestao', function (els) { return els.map(function (e) { return e.textContent; }); });
+    assert.deepStrictEqual(chips, ['Silvana']);
+    await p.fill('#contribuinte', 'Gabriel');
+    await p.fill('#contribuinte', 'sil');
+    chips = await p.$$eval('#sugestoes-contribuinte .sugestao', function (els) { return els.map(function (e) { return e.textContent; }); });
+    assert.deepStrictEqual(chips, ['Silvana']);
+    await p.fill('#contribuinte', 'xyz');
+    assert.strictEqual(await p.$$eval('#sugestoes-contribuinte .sugestao', function (els) { return els.length; }), 0);
+    await p.fill('#contribuinte', 'si');
+    await p.screenshot({ path: path.join(PRINTS, '3b-sugestao-nome.png') });
+    await p.click('#sugestoes-contribuinte .sugestao >> text=Silvana');
+    assert.strictEqual(await p.inputValue('#contribuinte'), 'Silvana');
+    await p.fill('#contribuinte', '');
+    await p.click('[data-tipo="Saída"]');
   });
 
   await passo('Saída exige descrição; sugestão preenche o campo; salva', async function () {

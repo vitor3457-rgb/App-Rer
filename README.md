@@ -44,7 +44,9 @@ Somente as contas Google autorizadas conseguem usar o app.
    até o app ser fechado.
 1. **Valor**: digite só os números. Exemplo: para R$ 50,00, digite `5`, `0`, `0`, `0`.
 2. Toque em **Entrada** ou **Saída**.
-   - **Entrada**: escolha **Dízimo** ou **Oferta**.
+   - **Entrada**: escolha **Dízimo** ou **Oferta** e escreva o **nome de quem contribuiu**
+     (obrigatório no dízimo, opcional na oferta). Os nomes já usados aparecem embaixo do campo:
+     é só tocar no nome. Ao digitar (ex.: `sil`), aparecem só os nomes parecidos (ex.: Silvana).
    - **Saída**: escreva a **descrição da despesa** (ex.: aluguel, água, luz) ou toque numa sugestão.
 3. **Data**: já vem com a data de hoje. Toque para mudar, se precisar.
 4. Toque em **Salvar**. Aparece a mensagem **"Lançamento salvo!"** e o formulário fica limpo
@@ -142,7 +144,7 @@ Com mais de um ano, a tela **Lançamentos do mês** passa a mostrar também a es
   | Mês | mês da data de referência, em número (1 a 12) |
   | Tipo | `Entrada` ou `Saída` |
   | Categoria | `Dízimo`, `Oferta` ou `Despesa` |
-  | Descrição | texto da despesa (vazio nas entradas) |
+  | Descrição | na **Saída**: o que foi a despesa; na **Entrada**: nome de quem contribuiu |
   | Valor | número positivo com 2 casas decimais |
   | Usuário | e-mail da conta Google usada no lançamento |
   | Responsável | pessoa escolhida no app (Alex, Júlio, Gabriel, Lázaro...) |

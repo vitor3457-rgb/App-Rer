@@ -63,11 +63,20 @@
             </div>
           </div>
 
+          <div class="campo" id="bloco-contribuinte" hidden>
+            <label for="contribuinte" class="rotulo">
+              Nome de quem contribuiu <span id="contribuinte-opcional" class="rotulo-extra" hidden>(opcional na oferta)</span>
+            </label>
+            <input id="contribuinte" class="entrada" type="text" maxlength="200"
+                   placeholder="Ex.: Silvana" autocomplete="off" autocapitalize="words" enterkeyhint="done">
+            <div id="sugestoes-contribuinte" class="sugestoes" aria-label="Nomes já usados"></div>
+          </div>
+
           <div class="campo" id="bloco-descricao" hidden>
             <label for="descricao" class="rotulo">Descrição da despesa</label>
             <input id="descricao" class="entrada" type="text" maxlength="200"
                    placeholder="Ex.: aluguel, água, luz" autocomplete="off" enterkeyhint="done">
-            <div id="sugestoes" class="sugestoes" aria-label="Sugestões"></div>
+            <div id="sugestoes" class="sugestoes" aria-label="Despesas já usadas"></div>
           </div>
 
           <div class="campo">

@@ -42,7 +42,7 @@ function novoApp(opcoes) {
 }
 
 function lancamento(extra) {
-  var base = { valorCentavos: 5000, tipo: 'Entrada', categoria: 'Dízimo', descricao: '', dataReferencia: '2026-11-08', responsavel: 'Alex' };
+  var base = { valorCentavos: 5000, tipo: 'Entrada', categoria: 'Dízimo', descricao: 'Silvana', dataReferencia: '2026-11-08', responsavel: 'Alex' };
   Object.keys(extra || {}).forEach(function (k) { base[k] = extra[k]; });
   return base;
 }
@@ -88,7 +88,7 @@ teste('grava uma linha limpa com os tipos certos em cada coluna', function () {
   assert.strictEqual(l[4], 11);
   assert.strictEqual(l[5], 'Entrada');
   assert.strictEqual(l[6], 'Dízimo');
-  assert.strictEqual(l[7], '');
+  assert.strictEqual(l[7], 'Silvana', 'na entrada, Descrição = nome de quem contribuiu');
   assert.strictEqual(l[8], 123.45);
   assert.strictEqual(l[9], DONO);
   assert.strictEqual(aba.getRange(2, 9).getNumberFormat(), '"R$" #,##0.00');
@@ -139,6 +139,8 @@ teste('validações com mensagens claras em português', function () {
     [lancamento({ dataReferencia: '2027-01-01' }), /precisa ser de 2026/],
     [lancamento({ id: '<script>' }), /Identificador/],
     [null, /Não recebi os dados/],
+    [lancamento({ descricao: '  ' }), /nome de quem deu o dízimo/],
+    [lancamento({ descricao: new Array(202).join('x') }), /O nome está muito longo/],
     [lancamento({ responsavel: '' }), /responsável na lista \(Alex, Júlio, Gabriel ou Lázaro\)/],
     [lancamento({ responsavel: 'Pedro' }), /responsável na lista/],
   ];
@@ -210,7 +212,7 @@ teste('ano extra em CONFIG.ANOS passa a ser aceito (preparado para 2027)', funct
 
 teste('usuário não autorizado não grava, não lista e não exclui', function () {
   var t = novoApp({ email: 'intruso@gmail.com' });
-  ['salvarLancamento', 'listarLancamentos', 'excluirLancamento', 'obterSugestoesDespesa'].forEach(function (f) {
+  ['salvarLancamento', 'listarLancamentos', 'excluirLancamento', 'obterSugestoes'].forEach(function (f) {
     var r = t.app.chamar(f, f === 'listarLancamentos' ? 2026 : lancamento(), 11);
     assert.strictEqual(r.ok, false, f);
     assert.ok(/intruso@gmail.com não está autorizado/.test(r.erro), r.erro);
@@ -434,14 +436,29 @@ teste('excluir algo que já foi excluído avisa de forma clara', function () {
   assert.ok(/não foi encontrado|inválido/.test(t.app.chamar('excluirLancamento', '').erro));
 });
 
-teste('sugestões de despesa: as do Config + as mais usadas, sem repetir', function () {
+teste('oferta pode ficar sem nome; o nome é gravado na Descrição', function () {
+  var t = novoApp();
+  assert.strictEqual(t.app.chamar('salvarLancamento', lancamento({ categoria: 'Oferta', descricao: '' })).ok, true);
+  assert.strictEqual(t.app.chamar('salvarLancamento', lancamento({ categoria: 'Oferta', descricao: ' Gabriel  Souza ' })).ok, true);
+  var linhas = t.gas._planilha.getSheetByName('Lancamentos')._valores();
+  assert.strictEqual(linhas[1][7], '');
+  assert.strictEqual(linhas[2][7], 'Gabriel Souza');
+});
+
+teste('sugestões: despesas (Config + mais usadas) e nomes de quem contribuiu, sem repetir', function () {
   var t = novoApp();
   ['Gás', 'Gás', 'Gás', 'aluguel', 'Pintura'].forEach(function (d) {
     t.app.chamar('salvarLancamento', lancamento({ tipo: 'Saída', descricao: d }));
   });
-  var r = t.app.chamar('obterSugestoesDespesa');
+  ['Silvana', 'silvana', 'Gabriel', 'Ana', 'Silvana', 'Gabriel'].forEach(function (n) {
+    t.app.chamar('salvarLancamento', lancamento({ descricao: n }));
+  });
+  var r = t.app.chamar('obterSugestoes');
   assert.strictEqual(r.ok, true, r.erro);
-  assert.deepStrictEqual(r.sugestoes, ['Aluguel', 'Água', 'Luz', 'Internet', 'Material de limpeza', 'Gás', 'Pintura']);
+  assert.deepStrictEqual(r.despesas, ['Aluguel', 'Água', 'Luz', 'Internet', 'Material de limpeza', 'Gás', 'Pintura']);
+  assert.deepStrictEqual(r.contribuintes, ['Silvana', 'Gabriel', 'Ana']);
+  var antiga = t.app.chamar('obterSugestoesDespesa');
+  assert.strictEqual(antiga.sugestoes.length, 7);
 });
 
 teste('sem acesso à planilha: mensagem pedindo para compartilhar', function () {

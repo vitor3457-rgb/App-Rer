@@ -162,39 +162,68 @@ function jsonParaHtml_(objeto) {
 // ------------------------------------------------------------
 
 /**
- * Sugestões de descrição para despesas: as do Config + as mais usadas.
+ * Sugestões para os campos de texto, das mais usadas para as menos usadas:
+ *  - despesas: as do Config + descrições já usadas em Saídas;
+ *  - contribuintes: nomes já usados em Entradas (quem deu o dízimo/oferta).
  * Também serve para testar cedo se a pessoa tem acesso à planilha.
  */
-function obterSugestoesDespesa() {
+function obterSugestoes() {
   return executar_(function () {
-    var contagem = {};
-    var nomeOriginal = {};
+    var despesas = new ContadorDeTextos_();
+    var contribuintes = new ContadorDeTextos_();
     var aba = planilha_().getSheetByName(CONFIG.ABA_LANCAMENTOS);
     if (aba && aba.getLastRow() > 1) {
       var linhas = aba.getRange(2, 1, aba.getLastRow() - 1, COLUNAS.length).getValues();
       linhas.forEach(function (linha) {
-        if (normalizarTipo_(linha[COL.TIPO]) !== TIPO_SAIDA) return;
-        var desc = String(linha[COL.DESCRICAO] || '').trim();
-        if (!desc) return;
-        var chave = semAcentos_(desc).toLowerCase();
-        contagem[chave] = (contagem[chave] || 0) + 1;
-        if (!nomeOriginal[chave]) nomeOriginal[chave] = desc;
+        var tipo = normalizarTipo_(linha[COL.TIPO]);
+        var texto = String(linha[COL.DESCRICAO] || '').trim();
+        if (tipo === TIPO_SAIDA) despesas.contar(texto);
+        else if (tipo === TIPO_ENTRADA) contribuintes.contar(texto);
       });
     }
-    var maisUsadas = Object.keys(contagem)
-      .sort(function (a, b) { return contagem[b] - contagem[a]; })
-      .map(function (chave) { return nomeOriginal[chave]; });
-
-    var resultado = [];
-    var vistos = {};
-    (CONFIG.SUGESTOES_DESPESA || []).concat(maisUsadas).forEach(function (s) {
-      var chave = semAcentos_(s).toLowerCase();
-      if (vistos[chave] || resultado.length >= 12) return;
-      vistos[chave] = true;
-      resultado.push(s);
-    });
-    return { ok: true, sugestoes: resultado };
+    return {
+      ok: true,
+      despesas: juntarSemRepetir_(CONFIG.SUGESTOES_DESPESA || [], despesas.maisUsados(), 200),
+      contribuintes: juntarSemRepetir_([], contribuintes.maisUsados(), 500),
+    };
   });
+}
+
+/** Mantida para versões antigas da página que ainda estejam abertas no celular. */
+function obterSugestoesDespesa() {
+  var r = obterSugestoes();
+  return r.ok ? { ok: true, sugestoes: r.despesas.slice(0, 12) } : r;
+}
+
+/** Conta textos sem diferenciar acento/maiúscula, guardando a primeira grafia usada. */
+function ContadorDeTextos_() {
+  this.contagem = {};
+  this.original = {};
+}
+ContadorDeTextos_.prototype.contar = function (texto) {
+  if (!texto) return;
+  var chave = semAcentos_(texto).toLowerCase();
+  this.contagem[chave] = (this.contagem[chave] || 0) + 1;
+  if (!this.original[chave]) this.original[chave] = texto;
+};
+ContadorDeTextos_.prototype.maisUsados = function () {
+  var c = this.contagem;
+  var o = this.original;
+  return Object.keys(c)
+    .sort(function (a, b) { return c[b] - c[a] || (a < b ? -1 : 1); })
+    .map(function (chave) { return o[chave]; });
+};
+
+function juntarSemRepetir_(primeiros, outros, limite) {
+  var resultado = [];
+  var vistos = {};
+  primeiros.concat(outros).forEach(function (t) {
+    var chave = semAcentos_(t).toLowerCase();
+    if (vistos[chave] || resultado.length >= limite) return;
+    vistos[chave] = true;
+    resultado.push(t);
+  });
+  return resultado;
 }
 
 /**
@@ -352,6 +381,10 @@ function validarLancamento_(dados) {
   if (tipo === TIPO_ENTRADA) {
     categoria = normalizarCategoriaEntrada_(dados.categoria);
     if (!categoria) throw erroUsuario_('Escolha se a entrada é Dízimo ou Oferta.');
+    // Na Entrada, a Descrição guarda o nome de quem contribuiu (obrigatório no dízimo).
+    if (categoria === 'Dízimo' && !descricao) {
+      throw erroUsuario_('Escreva o nome de quem deu o dízimo.');
+    }
   } else {
     categoria = CATEGORIA_SAIDA;
     if (!descricao) {
@@ -359,7 +392,7 @@ function validarLancamento_(dados) {
     }
   }
   if (descricao.length > CONFIG.TAMANHO_MAXIMO_DESCRICAO) {
-    throw erroUsuario_('A descrição está muito longa (máximo de ' +
+    throw erroUsuario_((tipo === TIPO_ENTRADA ? 'O nome está muito longo' : 'A descrição está muito longa') + ' (máximo de ' +
       CONFIG.TAMANHO_MAXIMO_DESCRICAO + ' letras).');
   }
 

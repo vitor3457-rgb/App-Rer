@@ -37,7 +37,7 @@
 18. [x] Testes de interface + prints, publicar (npm run publicar), atualizar README.
 
 ## Estado atual
-- **Última etapa concluída:** 18 (v2 publicada — versão 4 da implantação)
+- **Última etapa concluída:** v3 publicada (versão 5 da implantação) — nome de quem contribuiu
 - **Link do app:** https://script.google.com/macros/s/AKfycbyNetmj8y6NDe4qPv2zHcu2cWk1pBs93e5z5v_NZjdbhfjaC73F_CAcdH01RoxPCQWwVg/exec
 - **Planilha:** https://docs.google.com/spreadsheets/d/1sYPLI4UyaGCvtKJIwI_OhJ3f08QFN0zPADB3qFVQIEg/edit
 - **Conta dona (clasp/planilha):** vitor3457@gmail.com · scriptId em `.clasp.json` · implantação em `deploy.json`
@@ -85,3 +85,7 @@ quando ele colar a URL de retorno, gravá-la em `url.txt`. Conferir com `npx cla
   exportar Excel (SheetJS) e PDF (jsPDF + autotable) gerados no celular. 31 testes de servidor e
   21 de interface (inclui download dentro de iframe com sandbox e o caso sem internet).
   Pendente com o usuário: confirmar no celular que abre, salva e exporta; e-mail do tesoureiro.
+- v3 (versão 5): na Entrada, campo "Nome de quem contribuiu" (obrigatório no Dízimo, opcional na
+  Oferta), gravado na coluna Descrição. Sugestões em botõezinhos para despesas e nomes (mais usados
+  primeiro, filtram ao digitar; nome novo vira sugestão logo após salvar). Servidor: obterSugestoes()
+  (obterSugestoesDespesa mantida por compatibilidade). 32 testes de servidor e 23 de interface.

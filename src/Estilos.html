@@ -111,6 +111,8 @@
   .opcao-categoria[aria-pressed="true"] { background: var(--primaria); border-color: var(--primaria); color: #fff; }
 
   .sugestoes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .sugestoes:empty { display: none; }
+  .rotulo-extra { font-weight: 500; color: var(--texto-suave); font-size: .9rem; }
   .sugestao {
     min-height: 44px; padding: 8px 14px;
     border: 1px solid var(--borda); border-radius: 22px;

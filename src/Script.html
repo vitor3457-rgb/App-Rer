@@ -160,6 +160,7 @@
 
   var campoValor = $('valor');
   var campoDescricao = $('descricao');
+  var campoContribuinte = $('contribuinte');
   var campoData = $('data');
 
   function cursorNoFim() {
@@ -184,6 +185,7 @@
       b.classList.remove('com-erro');
     });
     $('bloco-categoria').hidden = tipo !== 'Entrada';
+    $('bloco-contribuinte').hidden = tipo !== 'Entrada';
     $('bloco-descricao').hidden = tipo !== 'Saída';
     if (tipo !== 'Entrada') escolherCategoria('');
     aoMudarFormulario();
@@ -195,24 +197,57 @@
       b.setAttribute('aria-pressed', String(b.getAttribute('data-categoria') === categoria));
       b.classList.remove('com-erro');
     });
+    $('contribuinte-opcional').hidden = categoria !== 'Oferta';
     aoMudarFormulario();
   }
 
-  function mostrarSugestoes(lista) {
-    var caixa = $('sugestoes');
+  // ---------- Sugestões (despesas e nomes de quem contribuiu) ----------
+  // Aparecem como botõezinhos embaixo do campo. Ao digitar, mostram só as que combinam.
+
+  var MAX_SUGESTOES = 12;
+  var sugestoes = { despesas: D.sugestoesDespesa || [], contribuintes: [] };
+
+  function semAcentosSug(texto) {
+    return String(texto || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  }
+
+  function mostrarSugestoes(campo, caixa, lista) {
+    var termo = semAcentosSug(campo.value);
+    var filtradas = (lista || []).filter(function (t) {
+      var n = semAcentosSug(t);
+      return !termo || (n.indexOf(termo) >= 0 && n !== termo);
+    });
+    filtradas.sort(function (a, b) {
+      return (semAcentosSug(a).indexOf(termo) === 0 ? 0 : 1) - (semAcentosSug(b).indexOf(termo) === 0 ? 0 : 1);
+    });
     caixa.innerHTML = '';
-    (lista || []).forEach(function (texto) {
+    filtradas.slice(0, MAX_SUGESTOES).forEach(function (texto) {
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'sugestao';
       b.textContent = texto;
       b.addEventListener('click', function () {
-        campoDescricao.value = texto;
-        campoDescricao.classList.remove('com-erro');
+        campo.value = texto;
+        campo.classList.remove('com-erro');
         aoMudarFormulario();
+        atualizarSugestoes();
       });
       caixa.appendChild(b);
     });
+  }
+
+  function atualizarSugestoes() {
+    mostrarSugestoes(campoDescricao, $('sugestoes'), sugestoes.despesas);
+    mostrarSugestoes(campoContribuinte, $('sugestoes-contribuinte'), sugestoes.contribuintes);
+  }
+
+  /** Depois de salvar, o texto novo já aparece como sugestão (no topo). */
+  function lembrarSugestao(tipoLista, texto) {
+    if (!texto) return;
+    var chave = semAcentosSug(texto);
+    var lista = sugestoes[tipoLista].filter(function (t) { return semAcentosSug(t) !== chave; });
+    lista.unshift(texto);
+    sugestoes[tipoLista] = lista;
   }
 
   // ---------- Responsável (caixa com lista que filtra ao digitar) ----------
@@ -403,6 +438,10 @@
     if (estado.tipo === 'Saída' && !descricao) {
       return { erro: 'Escreva a descrição da despesa (ex.: aluguel, água, luz).', elemento: campoDescricao };
     }
+    var contribuinte = campoContribuinte.value.replace(/\s+/g, ' ').trim();
+    if (estado.tipo === 'Entrada' && estado.categoria === 'Dízimo' && !contribuinte) {
+      return { erro: 'Escreva o nome de quem deu o dízimo.', elemento: campoContribuinte };
+    }
     var data = campoData.value;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(data) || !dataPorExtenso(data)) {
       return { erro: 'Escolha a data do lançamento.', elemento: campoData };
@@ -419,7 +458,8 @@
         valorCentavos: estado.centavos,
         tipo: estado.tipo,
         categoria: estado.tipo === 'Entrada' ? estado.categoria : 'Despesa',
-        descricao: estado.tipo === 'Saída' ? descricao : '',
+        // Na Entrada, a coluna Descrição guarda o nome de quem contribuiu.
+        descricao: estado.tipo === 'Saída' ? descricao : contribuinte,
         dataReferencia: data,
         responsavel: estado.responsavel,
       },
@@ -430,10 +470,12 @@
     estado.centavos = 0;
     campoValor.value = '';
     campoDescricao.value = '';
+    campoContribuinte.value = '';
     campoData.value = hojeISO();
     escolherTipo('');
     document.querySelectorAll('.com-erro').forEach(function (el) { el.classList.remove('com-erro'); });
     atualizarDataExtenso();
+    atualizarSugestoes();
     aoMudarFormulario();
   }
 
@@ -470,7 +512,9 @@
           return;
         }
         var d = v.dados;
-        var resumo = escaparHtml(d.tipo) + ' · ' + escaparHtml(d.tipo === 'Entrada' ? d.categoria : d.descricao) +
+        lembrarSugestao(d.tipo === 'Entrada' ? 'contribuintes' : 'despesas', d.descricao);
+        var oQue = d.tipo === 'Entrada' ? d.categoria + (d.descricao ? ' de ' + d.descricao : '') : d.descricao;
+        var resumo = escaparHtml(d.tipo) + ' · ' + escaparHtml(oQue) +
           ' · <strong>' + formatarReais(d.valorCentavos) + '</strong> · ' + dataBR(d.dataReferencia) +
           ' · ' + escaparHtml(d.responsavel);
         mostrarAviso((r.duplicado ? 'Este lançamento já estava salvo.' : 'Lançamento salvo!') + '<br>' + resumo);
@@ -606,7 +650,9 @@
 
     estado.itens.forEach(function (item, indice) {
       var entrada = item.tipo === 'Entrada';
-      var titulo = entrada ? item.categoria : (item.descricao || item.categoria);
+      var titulo = entrada
+        ? item.categoria + (item.descricao ? ' · ' + item.descricao : '')
+        : (item.descricao || item.categoria);
       var quem = item.responsavel || nomeCurto(item.usuario);
       var sub = (entrada ? 'Entrada' : 'Saída') + (quem ? ' · por ' + quem : '');
 
@@ -650,7 +696,7 @@
     estado.excluindo = item;
     var entrada = item.tipo === 'Entrada';
     $('modal-texto').innerHTML =
-      '<div><strong>' + escaparHtml(item.tipo) + ' · ' + escaparHtml(entrada ? item.categoria : item.descricao) + '</strong></div>' +
+      '<div><strong>' + escaparHtml(item.tipo) + ' · ' + escaparHtml(entrada ? item.categoria + (item.descricao ? ' · ' + item.descricao : '') : item.descricao) + '</strong></div>' +
       '<div>Valor: <strong>' + formatarReais(item.valorCentavos) + '</strong></div>' +
       '<div>Data: ' + dataBR(item.dataReferencia) + '</div>' +
       (item.responsavel ? '<div>Responsável: ' + escaparHtml(item.responsavel) + '</div>' : '') +
@@ -892,7 +938,7 @@
     doc.autoTable({
       startY: doc.lastAutoTable.finalY + 8,
       margin: { left: M, right: M, bottom: 18 },
-      head: [['Data', 'Tipo', 'Categoria', 'Descrição', 'Responsável', 'Valor']],
+      head: [['Data', 'Tipo', 'Categoria', 'Descrição / Nome', 'Responsável', 'Valor']],
       body: itens.map(function (i) {
         return [
           dataBR(i.dataReferencia), i.tipo, i.categoria, textoPdf(i.descricao),
@@ -1063,7 +1109,13 @@
     document.querySelectorAll('[data-categoria]').forEach(function (b) {
       b.addEventListener('click', function () { escolherCategoria(b.getAttribute('data-categoria')); });
     });
-    campoDescricao.addEventListener('input', function () { campoDescricao.classList.remove('com-erro'); aoMudarFormulario(); });
+    [campoDescricao, campoContribuinte].forEach(function (campo) {
+      campo.addEventListener('input', function () {
+        campo.classList.remove('com-erro');
+        aoMudarFormulario();
+        atualizarSugestoes();
+      });
+    });
 
     if (ANOS.length) {
       campoData.min = ANOS[0] + '-01-01';
@@ -1075,7 +1127,7 @@
     atualizarDataExtenso();
 
     // "Enter" no teclado fecha o teclado em vez de salvar sem querer.
-    [campoValor, campoDescricao].forEach(function (campo) {
+    [campoValor, campoDescricao, campoContribuinte].forEach(function (campo) {
       campo.addEventListener('keydown', function (e) {
         if (e.key === 'Enter') { e.preventDefault(); campo.blur(); }
       });
@@ -1096,11 +1148,16 @@
     prepararHistorico();
 
     // Sugestões: mostra as do Config na hora e depois atualiza com as mais usadas.
-    mostrarSugestoes(D.sugestoesDespesa);
-    servidor('obterSugestoesDespesa')
+    atualizarSugestoes();
+    servidor('obterSugestoes')
       .then(function (r) {
-        if (r.ok) mostrarSugestoes(r.sugestoes);
-        else mostrarAviso(escaparHtml(r.erro), 'erro');
+        if (r.ok) {
+          sugestoes.despesas = r.despesas || sugestoes.despesas;
+          sugestoes.contribuintes = r.contribuintes || [];
+          atualizarSugestoes();
+        } else {
+          mostrarAviso(escaparHtml(r.erro), 'erro');
+        }
       })
       .catch(function () { /* sem internet agora: as sugestões padrão já estão na tela */ });
   }
