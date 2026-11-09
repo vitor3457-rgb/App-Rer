@@ -23,6 +23,19 @@
         planilha, republicar; tesoureiro autoriza e instala no celular.
 13. [ ] Entrega final: link do app, link da planilha, instruções.
 
+## Pedido novo do usuário (v2) — EM ANDAMENTO
+14. [x] Logo da igreja (assets/ + src/Logo.js em base64) e nome curto "ADRER" (Config.NOME_APP;
+        nome completo: Assembleia de Deus Rocha Eterna dos Remidos).
+15. [x] Servidor: coluna nova "Responsável" (11ª coluna; na aba Excluidos vai no fim, 13ª),
+        lista CONFIG.RESPONSAVEIS = Alex, Júlio, Gabriel, Lázaro; padrão Alex; migração automática
+        do cabeçalho antigo; ícone do atalho = logo (setFaviconUrl com data URI, em try/catch).
+16. [ ] Interface: tema da igreja (laranja #FF8708, cinza rocha #504845, preto), cabeçalho com logo,
+        campo Responsável (caixa com lista que filtra ao digitar), "por Alex" na lista.
+17. [ ] Tela 2: botões Exportar Excel e Exportar PDF (gerados no celular com SheetJS 0.18.5 e
+        jsPDF 2.5.2 + autotable 3.8.4, carregados do jsDelivr/unpkg com SRI; nos testes, servidos
+        de node_modules via page.route).
+18. [ ] Testes de interface + prints, publicar (npm run publicar), atualizar README.
+
 ## Estado atual
 - **Última etapa concluída:** 10 (app publicado — versão 3, corrigido o erro de meta tag)
 - **Link do app:** https://script.google.com/macros/s/AKfycbyNetmj8y6NDe4qPv2zHcu2cWk1pBs93e5z5v_NZjdbhfjaC73F_CAcdH01RoxPCQWwVg/exec

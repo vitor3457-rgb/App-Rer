@@ -21,7 +21,10 @@
   },
   "homepage": "https://github.com/vitor3457-rgb/App-Rer#readme",
   "devDependencies": {
-    "@google/clasp": "^3.4.1"
+    "@google/clasp": "^3.4.1",
+    "jspdf": "2.5.2",
+    "jspdf-autotable": "3.8.4",
+    "xlsx": "0.18.5"
   },
   "private": true
 }

@@ -27,7 +27,7 @@ function novoApp(opcoes) {
   ['SpreadsheetApp', 'LockService', 'Session', 'Utilities', 'HtmlService', 'console'].forEach(function (nome) {
     contexto[nome] = gas[nome];
   });
-  ['Config.js', 'Codigo.js'].forEach(function (arquivo) {
+  ['Config.js', 'Logo.js', 'Codigo.js'].forEach(function (arquivo) {
     vm.runInContext(fs.readFileSync(path.join(RAIZ, arquivo), 'utf8'), contexto, { filename: arquivo });
   });
   contexto.CONFIG.USUARIOS_AUTORIZADOS = [DONO, 'Tesoureiro@Gmail.com '];
@@ -42,7 +42,7 @@ function novoApp(opcoes) {
 }
 
 function lancamento(extra) {
-  var base = { valorCentavos: 5000, tipo: 'Entrada', categoria: 'Dízimo', descricao: '', dataReferencia: '2026-11-08' };
+  var base = { valorCentavos: 5000, tipo: 'Entrada', categoria: 'Dízimo', descricao: '', dataReferencia: '2026-11-08', responsavel: 'Alex' };
   Object.keys(extra || {}).forEach(function (k) { base[k] = extra[k]; });
   return base;
 }
@@ -62,9 +62,9 @@ teste('primeiro lançamento cria a aba "Lancamentos" com o cabeçalho certo', fu
   assert.strictEqual(ss.getSheets().length, 1, 'deve reaproveitar a Página1 vazia');
   var aba = ss.getSheetByName('Lancamentos');
   assert.ok(aba, 'aba criada');
-  assert.deepStrictEqual(JSON.parse(JSON.stringify(aba.getRange(1, 1, 1, 10).getValues()[0])), [
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(aba.getRange(1, 1, 1, 11).getValues()[0])), [
     'ID', 'Data/hora do lançamento', 'Data de referência', 'Ano', 'Mês',
-    'Tipo', 'Categoria', 'Descrição', 'Valor', 'Usuário',
+    'Tipo', 'Categoria', 'Descrição', 'Valor', 'Usuário', 'Responsável',
   ]);
   assert.strictEqual(aba.getFrozenRows(), 1);
   assert.strictEqual(ss.getSpreadsheetTimeZone(), 'America/Sao_Paulo');
@@ -77,7 +77,8 @@ teste('grava uma linha limpa com os tipos certos em cada coluna', function () {
   assert.strictEqual(r.ok, true, r.erro);
   var aba = t.gas._planilha.getSheetByName('Lancamentos');
   assert.strictEqual(aba.getLastRow(), 2);
-  var l = aba.getRange(2, 1, 1, 10).getValues()[0];
+  var l = aba.getRange(2, 1, 1, 11).getValues()[0];
+  assert.strictEqual(l[10], 'Alex');
   assert.strictEqual(l[0], 'abc12345-0000');
   assert.ok(ehData(l[1]), 'data/hora é data');
   assert.ok(ehData(l[2]), 'data de referência é data');
@@ -138,6 +139,8 @@ teste('validações com mensagens claras em português', function () {
     [lancamento({ dataReferencia: '2027-01-01' }), /precisa ser de 2026/],
     [lancamento({ id: '<script>' }), /Identificador/],
     [null, /Não recebi os dados/],
+    [lancamento({ responsavel: '' }), /responsável na lista \(Alex, Júlio, Gabriel ou Lázaro\)/],
+    [lancamento({ responsavel: 'Pedro' }), /responsável na lista/],
   ];
   casos.forEach(function (c) {
     var r = t.app.chamar('salvarLancamento', c[0]);
@@ -156,6 +159,41 @@ teste('aceita "Saida"/"entrada"/"dizimo" sem acento ou em minúsculas', function
   assert.strictEqual(linhas[1][5], 'Entrada');
   assert.strictEqual(linhas[1][6], 'Dízimo');
   assert.strictEqual(linhas[2][5], 'Saída');
+});
+
+teste('responsável: aceita sem acento/maiúscula e grava o nome como está na lista', function () {
+  var t = novoApp();
+  var r = t.app.chamar('salvarLancamento', lancamento({ responsavel: '  lazaro ' }));
+  assert.strictEqual(r.ok, true, r.erro);
+  var lista = t.app.chamar('listarLancamentos', 2026, 11);
+  assert.strictEqual(lista.itens[0].responsavel, 'Lázaro');
+  assert.ok(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(lista.itens[0].dataHoraISO), lista.itens[0].dataHoraISO);
+});
+
+teste('planilha antiga (10 colunas) ganha a coluna "Responsável" sem perder dados', function () {
+  var t = novoApp();
+  var ss = t.gas._planilha;
+  var aba = ss.getSheets()[0].setName('Lancamentos');
+  aba.getRange(1, 1, 1, 10).setValues([['ID', 'Data/hora do lançamento', 'Data de referência', 'Ano', 'Mês',
+    'Tipo', 'Categoria', 'Descrição', 'Valor', 'Usuário']]);
+  aba.getRange(2, 1, 1, 10).setValues([['antigo-0001', new Date(), new Date(2026, 10, 2), 2026, 11,
+    'Entrada', 'Oferta', '', 10, 'dono@gmail.com']]);
+  var r = t.app.chamar('salvarLancamento', lancamento({ responsavel: 'Júlio' }));
+  assert.strictEqual(r.ok, true, r.erro);
+  assert.strictEqual(aba.getRange(1, 11).getValue(), 'Responsável');
+  assert.strictEqual(aba.getRange(3, 11).getValue(), 'Júlio');
+  var lista = t.app.chamar('listarLancamentos', 2026, 11);
+  assert.strictEqual(lista.itens.length, 2);
+  var antigo = lista.itens.filter(function (i) { return i.id === 'antigo-0001'; })[0];
+  assert.strictEqual(antigo.responsavel, '');
+
+  // aba de excluídos antiga (12 colunas) também ganha a coluna nova no fim
+  var exc = ss.insertSheet('Excluidos');
+  exc.getRange(1, 1, 1, 12).setValues([['ID', 'Data/hora do lançamento', 'Data de referência', 'Ano', 'Mês',
+    'Tipo', 'Categoria', 'Descrição', 'Valor', 'Usuário', 'Excluído em', 'Excluído por']]);
+  assert.strictEqual(t.app.chamar('excluirLancamento', r.id).ok, true);
+  assert.strictEqual(exc.getRange(1, 13).getValue(), 'Responsável');
+  assert.strictEqual(exc.getRange(2, 13).getValue(), 'Júlio');
 });
 
 teste('ano extra em CONFIG.ANOS passa a ser aceito (preparado para 2027)', function () {
@@ -186,12 +224,18 @@ teste('doGet: autorizado vê o app; não autorizado vê "Acesso não autorizado"
   var t = novoApp();
   var pagina = t.app.doGet({});
   assert.strictEqual(pagina.arquivo, 'Index');
-  assert.strictEqual(pagina.titulo, 'Financeiro da Igreja');
+  assert.strictEqual(pagina.titulo, 'ADRER');
+  assert.ok(/^data:image\/png;base64,/.test(pagina.template.logoCabecalho));
+  assert.ok(/^data:image\/png;base64,/.test(pagina.favicon));
   assert.ok(pagina.metas.viewport);
   var dados = JSON.parse(pagina.template.dadosJson);
   assert.strictEqual(dados.email, DONO);
   assert.deepStrictEqual(dados.anos, [2026]);
   assert.strictEqual(dados.meses.length, 12);
+  assert.deepStrictEqual(dados.responsaveis, ['Alex', 'Júlio', 'Gabriel', 'Lázaro']);
+  assert.strictEqual(dados.responsavelPadrao, 'Alex');
+  assert.strictEqual(dados.nomeCompleto, 'Assembleia de Deus Rocha Eterna dos Remidos');
+  assert.ok(/^data:image\/png;base64,/.test(dados.logoPdf));
   assert.ok(/^\d{4}-\d{2}-\d{2}$/.test(dados.hoje));
 
   var outro = novoApp({ email: 'Intruso@Gmail.com' });
@@ -370,8 +414,10 @@ teste('excluir remove da lista e guarda cópia na aba "Excluidos"', function () 
   assert.strictEqual(lista.itens[0].id, b.id);
 
   var exc = t.gas._planilha.getSheetByName('Excluidos')._valores();
-  assert.strictEqual(exc[0].length, 12);
+  assert.strictEqual(exc[0].length, 13);
   assert.strictEqual(exc[0][10], 'Excluído em');
+  assert.strictEqual(exc[0][12], 'Responsável');
+  assert.strictEqual(exc[1][12], 'Alex');
   assert.strictEqual(exc[1][0], a.id);
   assert.strictEqual(exc[1][8], 11.11);
   assert.ok(ehData(exc[1][10]));

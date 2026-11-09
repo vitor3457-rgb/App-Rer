@@ -30,13 +30,25 @@ var CONFIG = {
    */
   PLANILHA_ID: '1sYPLI4UyaGCvtKJIwI_OhJ3f08QFN0zPADB3qFVQIEg',
 
-  /** Nome que aparece no topo do app e na aba do navegador. */
-  NOME_APP: 'Financeiro da Igreja',
+  /** Nome curto que aparece no topo do app, na aba do navegador e no atalho do celular. */
+  NOME_APP: 'ADRER',
+
+  /** Nome completo do ministério (aparece no relatório em PDF e no Excel). */
+  NOME_COMPLETO: 'Assembleia de Deus Rocha Eterna dos Remidos',
+
+  /**
+   * Pessoas que podem ser escolhidas como "Responsável" pelo lançamento.
+   * Para incluir alguém, acrescente o nome entre aspas simples, com vírgula.
+   */
+  RESPONSAVEIS: ['Alex', 'Júlio', 'Gabriel', 'Lázaro'],
+
+  /** Responsável que já vem escolhido quando o app abre (precisa estar na lista acima). */
+  RESPONSAVEL_PADRAO: 'Alex',
 
   /** Sugestões rápidas que aparecem ao lançar uma despesa (Saída). */
   SUGESTOES_DESPESA: ['Aluguel', 'Água', 'Luz', 'Internet', 'Material de limpeza'],
 
-  /** Endereço de um ícone (PNG) para o atalho do celular. Vazio = ícone padrão. */
+  /** Endereço de um ícone (PNG) para o atalho do celular. Vazio = usa o logo da igreja (Logo.js). */
   ICONE_URL: '',
 
   // ---- Itens técnicos (normalmente não mexer) ----

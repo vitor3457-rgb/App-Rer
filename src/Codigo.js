@@ -22,6 +22,7 @@ var COLUNAS = [
   'Descrição',
   'Valor',
   'Usuário',
+  'Responsável',
 ];
 
 /** Posição (começando em 0) de cada coluna. */
@@ -36,6 +37,7 @@ var COL = {
   DESCRICAO: 7,
   VALOR: 8,
   USUARIO: 9,
+  RESPONSAVEL: 10,
 };
 
 /** Formato de cada coluna na planilha ("@" = texto puro). */
@@ -50,11 +52,16 @@ var FORMATOS = [
   '@',
   '"R$" #,##0.00',
   '@',
+  '@',
 ];
 
-/** A aba de excluídos repete as colunas e acrescenta quem/quando excluiu. */
-var COLUNAS_EXCLUIDOS = COLUNAS.concat(['Excluído em', 'Excluído por']);
-var FORMATOS_EXCLUIDOS = FORMATOS.concat(['dd/mm/yyyy hh:mm:ss', '@']);
+/**
+ * A aba de excluídos repete as 10 primeiras colunas, acrescenta quem/quando excluiu
+ * e, por último, o responsável (colunas novas sempre entram no fim, para não
+ * bagunçar planilhas que já existem).
+ */
+var COLUNAS_EXCLUIDOS = COLUNAS.slice(0, 10).concat(['Excluído em', 'Excluído por', 'Responsável']);
+var FORMATOS_EXCLUIDOS = FORMATOS.slice(0, 10).concat(['dd/mm/yyyy hh:mm:ss', '@', '@']);
 
 var TIPO_ENTRADA = 'Entrada';
 var TIPO_SAIDA = 'Saída';
@@ -86,6 +93,7 @@ function doGet() {
 
   var pagina = HtmlService.createTemplateFromFile('Index');
   pagina.nomeApp = CONFIG.NOME_APP;
+  pagina.logoCabecalho = LOGO.cabecalho;
   pagina.dadosJson = jsonParaHtml_(dadosIniciais_(email));
   return prepararPagina_(pagina.evaluate());
 }
@@ -105,8 +113,11 @@ function prepararPagina_(saida) {
       console.warn('Meta tag recusada (' + meta[0] + '): ' + mensagemDe_(e));
     }
   });
-  if (CONFIG.ICONE_URL) {
-    saida.setFaviconUrl(CONFIG.ICONE_URL);
+  // Ícone do atalho na tela inicial (se o Google recusar, fica o ícone padrão).
+  try {
+    saida.setFaviconUrl(CONFIG.ICONE_URL || LOGO.icone);
+  } catch (e) {
+    console.warn('Ícone recusado: ' + mensagemDe_(e));
   }
   return saida;
 }
@@ -122,6 +133,10 @@ function dadosIniciais_(email) {
   return {
     email: email,
     nomeApp: CONFIG.NOME_APP,
+    nomeCompleto: CONFIG.NOME_COMPLETO,
+    responsaveis: CONFIG.RESPONSAVEIS || [],
+    responsavelPadrao: normalizarResponsavel_(CONFIG.RESPONSAVEL_PADRAO) || '',
+    logoPdf: LOGO.pdf,
     anos: anosDisponiveis_(),
     meses: NOMES_MESES,
     categoriasEntrada: CATEGORIAS_ENTRADA,
@@ -213,6 +228,7 @@ function salvarLancamento(dados) {
       linha[COL.DESCRICAO] = l.descricao;
       linha[COL.VALOR] = l.valorCentavos / 100;
       linha[COL.USUARIO] = email;
+      linha[COL.RESPONSAVEL] = l.responsavel;
 
       escreverNovaLinha_(aba, linha, FORMATOS);
       SpreadsheetApp.flush();
@@ -286,7 +302,8 @@ function excluirLancamento(id) {
 
       var valores = aba.getRange(numeroLinha, 1, 1, COLUNAS.length).getValues()[0];
       var abaExcluidos = garantirAba_(CONFIG.ABA_EXCLUIDOS, COLUNAS_EXCLUIDOS, FORMATOS_EXCLUIDOS);
-      escreverNovaLinha_(abaExcluidos, valores.concat([new Date(), email]), FORMATOS_EXCLUIDOS);
+      var copia = valores.slice(0, 10).concat([new Date(), email, valores[COL.RESPONSAVEL]]);
+      escreverNovaLinha_(abaExcluidos, copia, FORMATOS_EXCLUIDOS);
       aba.deleteRow(numeroLinha);
       SpreadsheetApp.flush();
       return { ok: true, id: id };
@@ -346,6 +363,12 @@ function validarLancamento_(dados) {
       CONFIG.TAMANHO_MAXIMO_DESCRICAO + ' letras).');
   }
 
+  // Responsável (precisa ser um dos nomes da lista do Config)
+  var responsavel = normalizarResponsavel_(dados.responsavel);
+  if (!responsavel) {
+    throw erroUsuario_('Escolha o responsável na lista (' + listarNomes_(CONFIG.RESPONSAVEIS || []) + ').');
+  }
+
   // Data de referência (aaaa-mm-dd)
   var textoData = String(dados.dataReferencia || '').trim();
   var partes = /^(\d{4})-(\d{2})-(\d{2})$/.exec(textoData);
@@ -378,6 +401,7 @@ function validarLancamento_(dados) {
     data: data,
     ano: ano,
     mes: mes,
+    responsavel: responsavel,
   };
 }
 
@@ -425,10 +449,13 @@ function garantirAba_(nome, colunas, formatos) {
     }
   }
 
+  if (aba.getMaxColumns() < colunas.length) {
+    aba.insertColumnsAfter(aba.getMaxColumns(), colunas.length - aba.getMaxColumns());
+  }
   if (aba.getLastRow() === 0) {
     escreverCabecalho_(aba, colunas, formatos);
   } else {
-    conferirCabecalho_(aba, colunas);
+    conferirCabecalho_(aba, colunas, formatos);
   }
   return aba;
 }
@@ -447,7 +474,7 @@ function escreverCabecalho_(aba, colunas, formatos) {
   var cabecalho = aba.getRange(1, 1, 1, colunas.length);
   cabecalho.setValues([colunas])
     .setFontWeight('bold')
-    .setBackground('#e8eaf6');
+    .setBackground('#ffe3c2');
   aba.setFrozenRows(1);
   // Formato das colunas para as linhas já existentes na grade.
   var linhasGrade = aba.getMaxRows() - 1;
@@ -459,12 +486,28 @@ function escreverCabecalho_(aba, colunas, formatos) {
   aba.autoResizeColumns(1, colunas.length);
 }
 
-/** Evita gravar em colunas erradas se alguém mexer no cabeçalho. */
-function conferirCabecalho_(aba, colunas) {
+/**
+ * Evita gravar em colunas erradas se alguém mexer no cabeçalho.
+ * Se faltarem só colunas novas no fim (versão nova do app), acrescenta os títulos.
+ */
+function conferirCabecalho_(aba, colunas, formatos) {
   var atual = aba.getRange(1, 1, 1, colunas.length).getValues()[0];
   for (var i = 0; i < colunas.length; i++) {
-    if (semAcentos_(String(atual[i]).trim()).toLowerCase() !==
-        semAcentos_(colunas[i]).toLowerCase()) {
+    var texto = String(atual[i]).trim();
+    if (!texto && atual.slice(i).every(function (v) { return String(v).trim() === ''; })) {
+      var novos = colunas.slice(i);
+      aba.getRange(1, i + 1, 1, novos.length).setValues([novos])
+        .setFontWeight('bold')
+        .setBackground('#ffe3c2');
+      var linhasGrade = aba.getMaxRows() - 1;
+      if (linhasGrade > 0) {
+        var formatoNovas = [];
+        for (var l = 0; l < linhasGrade; l++) formatoNovas.push(formatos.slice(i));
+        aba.getRange(2, i + 1, linhasGrade, novos.length).setNumberFormats(formatoNovas);
+      }
+      return;
+    }
+    if (semAcentos_(texto).toLowerCase() !== semAcentos_(colunas[i]).toLowerCase()) {
       throw erroUsuario_(
         'O cabeçalho da aba "' + aba.getName() + '" foi alterado (coluna ' + (i + 1) +
         ' deveria ser "' + colunas[i] + '"). Corrija a linha 1 da planilha para o app voltar a gravar.'
@@ -535,7 +578,9 @@ function linhaParaItem_(linha, fuso) {
     descricao: String(linha[COL.DESCRICAO] || '').trim(),
     valorCentavos: Math.round(Math.abs(valor) * 100),
     usuario: String(linha[COL.USUARIO] || '').trim(),
+    responsavel: String(linha[COL.RESPONSAVEL] || '').trim(),
     dataHoraLancamento: temDataHora ? Utilities.formatDate(dataHora, fuso, 'dd/MM/yyyy HH:mm') : '',
+    dataHoraISO: temDataHora ? Utilities.formatDate(dataHora, fuso, 'yyyy-MM-dd HH:mm:ss') : '',
     ordemLancamento: temDataHora ? dataHora.getTime() : 0,
   };
 }
@@ -631,8 +676,24 @@ function anosDisponiveis_() {
 }
 
 function listarAnos_(anos) {
-  if (anos.length <= 1) return String(anos[0] || '');
-  return anos.slice(0, -1).join(', ') + ' ou ' + anos[anos.length - 1];
+  return listarNomes_(anos.map(String));
+}
+
+/** ['a', 'b', 'c'] -> "a, b ou c" */
+function listarNomes_(nomes) {
+  if (nomes.length <= 1) return String(nomes[0] || '');
+  return nomes.slice(0, -1).join(', ') + ' ou ' + nomes[nomes.length - 1];
+}
+
+/** Devolve o nome do responsável como está no Config (sem diferenciar acento/maiúscula), ou ''. */
+function normalizarResponsavel_(valor) {
+  var r = semAcentos_(limparTexto_(valor)).toLowerCase();
+  if (!r) return '';
+  var lista = CONFIG.RESPONSAVEIS || [];
+  for (var i = 0; i < lista.length; i++) {
+    if (semAcentos_(String(lista[i]).trim()).toLowerCase() === r) return String(lista[i]).trim();
+  }
+  return '';
 }
 
 function normalizarTipo_(valor) {

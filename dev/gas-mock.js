@@ -57,6 +57,11 @@
       this._maxLinhas += quantidade;
       return this;
     };
+    Aba.prototype.insertColumnsAfter = function (depoisDe, quantidade) {
+      if (depoisDe < 1 || depoisDe > this._maxColunas) throw new Error('Coluna fora da grade');
+      this._maxColunas += quantidade;
+      return this;
+    };
     Aba.prototype.deleteRow = function (linha) {
       if (linha < 1 || linha > this._maxLinhas) throw new Error('Linha fora da grade');
       this._dados.splice(linha - 1, 1);
