@@ -39,7 +39,7 @@ Somente as contas Google autorizadas conseguem usar o app.
 
 ### Novo lançamento (tela inicial)
 1. **Responsável**: já vem com **Alex**. Para trocar, toque na caixa: aparece a lista
-   (Alex, Júlio, Gabriel, Lázaro). Toque no nome, ou comece a digitar para filtrar
+   (Alex, Júlio, Lázaro). Toque no nome, ou comece a digitar para filtrar
    (ex.: `laz` → Lázaro). O nome escolhido continua marcado nos próximos lançamentos
    até o app ser fechado.
 1. **Valor**: digite só os números. Exemplo: para R$ 50,00, digite `5`, `0`, `0`, `0`.
@@ -103,12 +103,12 @@ Você só precisa compartilhar a planilha (passo B abaixo).
 
 > Use o e-mail da **conta Google** com que a pessoa entra no celular.
 
-## 4.1 Mudar a lista de responsáveis (Alex, Júlio, Gabriel, Lázaro)
+## 4.1 Mudar a lista de responsáveis (Alex, Júlio, Lázaro)
 
 Peça ao Claude (ex.: _"inclua a Maria na lista de responsáveis"_) ou siga o passo **4A**,
 mas edite estas linhas do **Config.gs**:
 ```
-RESPONSAVEIS: ['Alex', 'Júlio', 'Gabriel', 'Lázaro'],
+RESPONSAVEIS: ['Alex', 'Júlio', 'Lázaro'],
 RESPONSAVEL_PADRAO: 'Alex',
 ```
 `RESPONSAVEL_PADRAO` é o nome que já vem escolhido quando o app abre.
@@ -147,7 +147,7 @@ Com mais de um ano, a tela **Lançamentos do mês** passa a mostrar também a es
   | Descrição | na **Saída**: o que foi a despesa; na **Entrada**: nome de quem contribuiu |
   | Valor | número positivo com 2 casas decimais |
   | Usuário | e-mail da conta Google usada no lançamento |
-  | Responsável | pessoa escolhida no app (Alex, Júlio, Gabriel, Lázaro...) |
+  | Responsável | pessoa escolhida no app (Alex, Júlio, Lázaro...) |
 
 - Aba **`Excluidos`**: cópia dos lançamentos excluídos (não use no painel).
 - **Não mude os títulos da linha 1** nem a ordem das colunas: o app confere isso antes de gravar.

@@ -89,3 +89,4 @@ quando ele colar a URL de retorno, gravá-la em `url.txt`. Conferir com `npx cla
   Oferta), gravado na coluna Descrição. Sugestões em botõezinhos para despesas e nomes (mais usados
   primeiro, filtram ao digitar; nome novo vira sugestão logo após salvar). Servidor: obterSugestoes()
   (obterSugestoesDespesa mantida por compatibilidade). 32 testes de servidor e 23 de interface.
+- Versão 6: Gabriel removido de CONFIG.RESPONSAVEIS (agora Alex, Júlio, Lázaro). Lançamentos antigos com Gabriel continuam como estão.

@@ -141,7 +141,7 @@ teste('validações com mensagens claras em português', function () {
     [null, /Não recebi os dados/],
     [lancamento({ descricao: '  ' }), /nome de quem deu o dízimo/],
     [lancamento({ descricao: new Array(202).join('x') }), /O nome está muito longo/],
-    [lancamento({ responsavel: '' }), /responsável na lista \(Alex, Júlio, Gabriel ou Lázaro\)/],
+    [lancamento({ responsavel: '' }), /responsável na lista \(Alex, Júlio ou Lázaro\)/],
     [lancamento({ responsavel: 'Pedro' }), /responsável na lista/],
   ];
   casos.forEach(function (c) {
@@ -234,7 +234,7 @@ teste('doGet: autorizado vê o app; não autorizado vê "Acesso não autorizado"
   assert.strictEqual(dados.email, DONO);
   assert.deepStrictEqual(dados.anos, [2026]);
   assert.strictEqual(dados.meses.length, 12);
-  assert.deepStrictEqual(dados.responsaveis, ['Alex', 'Júlio', 'Gabriel', 'Lázaro']);
+  assert.deepStrictEqual(dados.responsaveis, ['Alex', 'Júlio', 'Lázaro']);
   assert.strictEqual(dados.responsavelPadrao, 'Alex');
   assert.strictEqual(dados.nomeCompleto, 'Assembleia de Deus Rocha Eterna dos Remidos');
   assert.ok(/^data:image\/png;base64,/.test(dados.logoPdf));

@@ -128,7 +128,7 @@ async function digitarValor(p, digitos) {
     await p.click('#responsavel');
     await p.waitForSelector('#lista-responsaveis:not([hidden])');
     var nomes = await p.$$eval('#lista-responsaveis .combo-opcao', function (els) { return els.map(function (e) { return e.textContent; }); });
-    assert.deepStrictEqual(nomes, ['Alex', 'Júlio', 'Gabriel', 'Lázaro']);
+    assert.deepStrictEqual(nomes, ['Alex', 'Júlio', 'Lázaro']);
     assert.strictEqual(await p.getAttribute('#lista-responsaveis [data-nome="Alex"]', 'aria-selected'), 'true');
     await p.screenshot({ path: path.join(PRINTS, '1b-lista-responsaveis.png') });
     await p.keyboard.type('laz');
@@ -139,9 +139,15 @@ async function digitarValor(p, digitos) {
     assert.strictEqual(await p.isVisible('#lista-responsaveis'), false);
     // digitando e confirmando com Enter
     await p.click('#responsavel');
-    await p.keyboard.type('GAB');
+    await p.keyboard.type('JUL');
     await p.keyboard.press('Enter');
-    assert.strictEqual(await p.inputValue('#responsavel'), 'Gabriel');
+    assert.strictEqual(await p.inputValue('#responsavel'), 'Júlio');
+    // Gabriel saiu da lista de responsáveis
+    await p.click('#responsavel');
+    await p.keyboard.type('gab');
+    assert.ok(/Nenhum nome encontrado/.test(await p.textContent('#lista-responsaveis')));
+    await p.keyboard.press('Escape');
+    await p.click('#titulo-novo');
     // nome fora da lista não é aceito
     await p.click('#responsavel');
     await p.keyboard.type('Pedro');
@@ -151,7 +157,7 @@ async function digitarValor(p, digitos) {
     await p.click('[data-tipo="Entrada"]');
     await p.click('[data-categoria="Oferta"]');
     await p.click('#botao-salvar');
-    assert.ok(/Escolha o responsável na lista \(Alex, Júlio, Gabriel ou Lázaro\)/.test(await p.textContent('#erro-form')));
+    assert.ok(/Escolha o responsável na lista \(Alex, Júlio ou Lázaro\)/.test(await p.textContent('#erro-form')));
     // o erro leva a pessoa ao campo, com a lista aberta; a setinha fecha e reabre
     assert.strictEqual(await p.isVisible('#lista-responsaveis'), true);
     await p.click('#abrir-responsaveis');

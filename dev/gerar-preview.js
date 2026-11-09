@@ -78,7 +78,7 @@ var simulacao = [
   '      ["08", 9850, "Saída", "Despesa", "Material de limpeza e manutenção do banheiro"]',
   '    ].forEach(function (x, i) {',
   '      gas._definirEmail(i % 3 === 2 ? "tesoureiro@gmail.com" : "dono@gmail.com");',
-  '      salvarLancamento({ valorCentavos: x[1], tipo: x[2], categoria: x[3], descricao: x[4], dataReferencia: hoje + "-" + x[0], responsavel: ["Alex", "Júlio", "Gabriel", "Lázaro"][i % 4] });',
+  '      salvarLancamento({ valorCentavos: x[1], tipo: x[2], categoria: x[3], descricao: x[4], dataReferencia: hoje + "-" + x[0], responsavel: ["Alex", "Júlio", "Lázaro"][i % 3] });',
   '    });',
   '    gas._definirEmail(email);',
   '  }',

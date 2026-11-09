@@ -40,7 +40,7 @@ var CONFIG = {
    * Pessoas que podem ser escolhidas como "Responsável" pelo lançamento.
    * Para incluir alguém, acrescente o nome entre aspas simples, com vírgula.
    */
-  RESPONSAVEIS: ['Alex', 'Júlio', 'Gabriel', 'Lázaro'],
+  RESPONSAVEIS: ['Alex', 'Júlio', 'Lázaro'],
 
   /** Responsável que já vem escolhido quando o app abre (precisa estar na lista acima). */
   RESPONSAVEL_PADRAO: 'Alex',
