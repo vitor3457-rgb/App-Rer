@@ -90,23 +90,13 @@
           <button type="submit" id="botao-salvar" class="botao botao-principal">Salvar</button>
         </form>
 
-        <button type="button" id="ir-lista" class="botao botao-secundario">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v2H4zm0 6h16v2H4zm0 6h16v2H4z" fill="currentColor"/></svg>
-          Ver lançamentos do mês
-        </button>
 
         <p class="usuario">Conectado como <strong id="email-usuario"></strong></p>
       </section>
 
-      <!-- ===================== TELA 2: LANÇAMENTOS DO MÊS ===================== -->
+      <!-- ============ TELA DO MÊS: "Lançamentos" e "Dashboard" (mesmo filtro de mês) ============ -->
       <section id="tela-lista" class="tela" aria-labelledby="titulo-lista" hidden>
-        <div class="barra-tela">
-          <button type="button" id="voltar" class="botao-voltar" aria-label="Voltar para novo lançamento">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.4 5.4L14 4l-8 8 8 8 1.4-1.4L8.8 12z" fill="currentColor"/></svg>
-            Voltar
-          </button>
-          <h1 id="titulo-lista" class="titulo-tela">Lançamentos do mês</h1>
-        </div>
+        <h1 id="titulo-lista" class="titulo-tela">Lançamentos do mês</h1>
 
         <div class="filtro cartao">
           <div class="filtro-linha">
@@ -127,6 +117,9 @@
           </div>
         </div>
 
+        <div id="estado-lista" class="estado-lista" role="status" aria-live="polite"></div>
+
+        <div id="parte-lista">
         <span class="exportar-rotulo" id="rotulo-exportar">Exportar este mês para:</span>
         <div class="exportar" role="group" aria-labelledby="rotulo-exportar">
           <button type="button" id="exportar-excel" class="botao botao-exportar" aria-label="Exportar para Excel">
@@ -139,7 +132,6 @@
           </button>
         </div>
 
-        <div id="estado-lista" class="estado-lista" role="status" aria-live="polite"></div>
         <ul id="lista" class="lista"></ul>
 
         <div id="resumo" class="cartao resumo" hidden>
@@ -150,13 +142,61 @@
           <div class="linha-resumo cor-saida"><span>Total de saídas</span><span id="t-saidas"></span></div>
           <div class="linha-resumo saldo" id="linha-saldo"><span>Saldo do mês</span><span id="t-saldo"></span></div>
         </div>
+        </div>
 
-        <button type="button" id="voltar-rodape" class="botao botao-secundario">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.4 5.4L14 4l-8 8 8 8 1.4-1.4L8.8 12z" fill="currentColor"/></svg>
-          Voltar para novo lançamento
-        </button>
+        <!-- Dashboard -->
+        <div id="parte-dash" hidden>
+          <div class="exportar exportar-um">
+            <button type="button" id="exportar-dash-pdf" class="botao botao-exportar">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zm-1 7V3.5L18.5 9zM7 13h2a1.5 1.5 0 0 1 0 3H8v2H7zm1 1v1h1a.5.5 0 0 0 0-1zm3-1h1.5a2 2 0 0 1 2 2v1a2 2 0 0 1-2 2H11zm1 1v3h.5a1 1 0 0 0 1-1v-1a1 1 0 0 0-1-1zm3-1h3v1h-2v1h1.5v1H16v2h-1z" fill="#c0262d"/></svg>
+              Exportar dashboard em PDF
+            </button>
+          </div>
+
+          <div id="dash" hidden>
+            <div class="kpis">
+              <div class="kpi"><span class="kpi-rotulo">Entradas</span><strong id="k-entradas" class="cor-entrada"></strong></div>
+              <div class="kpi"><span class="kpi-rotulo">Saídas</span><strong id="k-saidas" class="cor-saida"></strong></div>
+              <div class="kpi kpi-saldo" id="kpi-saldo"><span class="kpi-rotulo">Saldo do mês</span><strong id="k-saldo"></strong></div>
+              <div class="kpi"><span class="kpi-rotulo">Lançamentos</span><strong id="k-quantidade"></strong></div>
+            </div>
+
+            <div class="cartao grafico">
+              <h2 class="grafico-titulo">De onde veio e para onde foi</h2>
+              <div id="g-barras"></div>
+            </div>
+
+            <div class="cartao grafico">
+              <h2 class="grafico-titulo">Saldo ao longo do mês</h2>
+              <p class="grafico-ajuda">Toque no gráfico para ver o saldo de cada dia.</p>
+              <div id="g-linha" class="grafico-linha"></div>
+            </div>
+
+            <div class="cartao grafico">
+              <h2 class="grafico-titulo">Maiores despesas</h2>
+              <div id="g-despesas"></div>
+            </div>
+          </div>
+        </div>
+
       </section>
     </main>
+
+    <!-- Menu fixo embaixo -->
+    <nav class="menu" aria-label="Menu">
+      <button type="button" class="menu-item" id="nav-novo" data-tela="novo" aria-current="page">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z" fill="currentColor"/></svg>
+        <span>Novo lançamento</span>
+      </button>
+      <button type="button" class="menu-item" id="nav-lista" data-tela="lista">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v2H4zm0 6h16v2H4zm0 6h16v2H4z" fill="currentColor"/></svg>
+        <span>Lançamentos</span>
+      </button>
+      <button type="button" class="menu-item" id="nav-dash" data-tela="dash">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16v2H4zm1-9h3v7H5zm5.5-5h3v12h-3zM16 9h3v9h-3z" fill="currentColor"/></svg>
+        <span>Dashboard</span>
+      </button>
+    </nav>
 
     <!-- Mensagem rápida (ex.: "Lançamento salvo!") -->
     <div id="aviso" class="aviso" role="status" aria-live="polite" hidden></div>

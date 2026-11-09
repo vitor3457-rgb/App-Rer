@@ -52,8 +52,19 @@ Somente as contas Google autorizadas conseguem usar o app.
 4. Toque em **Salvar**. Aparece a mensagem **"Lançamento salvo!"** e o formulário fica limpo
    (o responsável continua escolhido).
 
+### Menu
+Na parte de baixo da tela há um menu fixo com **Novo lançamento**, **Lançamentos** e **Dashboard**.
+O mês escolhido vale para as duas últimas telas.
+
+### Dashboard
+- Escolha o mês (lista ou setas **‹ ›**).
+- Mostra os quadros **Entradas**, **Saídas**, **Saldo do mês** e **Lançamentos**, e três gráficos:
+  **De onde veio e para onde foi** (dízimos, ofertas e saídas), **Saldo ao longo do mês**
+  (toque no gráfico para ver o saldo de cada dia) e **Maiores despesas**.
+- **Exportar dashboard em PDF** baixa `ADRER-dashboard-AAAA-MM.pdf` com os mesmos números e gráficos.
+
 ### Lançamentos do mês
-- Toque em **Ver lançamentos do mês**.
+- Toque em **Lançamentos** no menu.
 - Escolha o mês na lista ou use as setas **‹ ›**.
 - Entradas aparecem em **verde** e saídas em **vermelho**.
 - No final aparece o **resumo**: dízimos, ofertas, total de entradas, total de saídas e **saldo do mês**.
@@ -67,7 +78,7 @@ Somente as contas Google autorizadas conseguem usar o app.
   - O arquivo vai para a pasta **Downloads** do celular (aparece também na notificação).
   - Na primeira vez, o app baixa a ferramenta de exportação da internet. Se a internet estiver lenta,
     pode aparecer "Tudo pronto! Toque de novo em Exportar" — é só tocar de novo.
-- Para voltar, toque em **Voltar** ou use o botão "voltar" do celular.
+- Para voltar, use o menu ou o botão "voltar" do celular.
 
 ## 4. Adicionar ou remover um usuário autorizado
 

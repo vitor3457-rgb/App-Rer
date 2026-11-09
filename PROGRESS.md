@@ -90,3 +90,8 @@ quando ele colar a URL de retorno, gravá-la em `url.txt`. Conferir com `npx cla
   primeiro, filtram ao digitar; nome novo vira sugestão logo após salvar). Servidor: obterSugestoes()
   (obterSugestoesDespesa mantida por compatibilidade). 32 testes de servidor e 23 de interface.
 - Versão 6: Gabriel removido de CONFIG.RESPONSAVEIS (agora Alex, Júlio, Lázaro). Lançamentos antigos com Gabriel continuam como estão.
+- v4 (versão 7): menu fixo embaixo (Novo lançamento / Lançamentos / Dashboard; botões "Voltar" e
+  "Ver lançamentos" removidos). Dashboard usa o mesmo filtro de mês: quadros (entradas, saídas,
+  saldo, quantidade) e 3 gráficos SVG feitos à mão (barras dízimos/ofertas/saídas, linha do saldo
+  acumulado com toque para ver o dia, maiores despesas). PDF do dashboard: gráficos convertidos
+  SVG→PNG (canvas) e colocados no jsPDF. 32 testes de servidor e 26 de interface.

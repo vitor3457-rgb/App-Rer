@@ -607,6 +607,7 @@
     definirExportacao(false);
     $('lista').innerHTML = '';
     $('resumo').hidden = true;
+    $('dash').hidden = true;
     mostrarEstadoLista(ICONE_CARREGANDO + '<div>Carregando lançamentos...</div>');
 
     servidor('listarLancamentos', estado.ano, estado.mes)
@@ -638,6 +639,7 @@
     estado.itens = r.itens || [];
     estado.listaAtual = r;
     definirExportacao(true);
+    mostrarDashboard(r);
     var nomeMes = MESES[r.mes - 1] || '';
     var lista = $('lista');
     lista.innerHTML = '';
@@ -735,6 +737,249 @@
       });
   }
 
+  // ---------- Dashboard (gráficos simples em SVG, desenhados aqui no celular) ----------
+
+  var COR = {
+    entrada: '#1a7a38', saida: '#c0262d', linha: '#c45c00', area: '#ff8708',
+    tinta: '#1c1716', suave: '#6b5f5c', grade: '#e8e2e0', zero: '#9a8f8c',
+  };
+  var FONTE = 'system-ui, -apple-system, Roboto, Arial, sans-serif';
+
+  function svg(largura, altura, conteudo, descricao) {
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + largura + ' ' + altura + '" width="' + largura +
+      '" height="' + altura + '" role="img" aria-label="' + escaparHtml(descricao) + '" font-family="' + FONTE + '">' +
+      '<rect width="100%" height="100%" fill="#ffffff"/>' + conteudo + '</svg>';
+  }
+
+  function textoSvg(x, y, texto, extra) {
+    return '<text x="' + x + '" y="' + y + '" ' + (extra || '') + '>' + escaparHtml(texto) + '</text>';
+  }
+
+  /** "R$ 1,2 mil", "R$ 450" — para eixos. */
+  function reaisCurto(centavos) {
+    var r = centavos / 100;
+    var abs = Math.abs(r);
+    var texto = abs >= 1000
+      ? (abs / 1000).toFixed(abs >= 10000 ? 0 : 1).replace('.', ',').replace(/,0$/, '') + ' mil'
+      : String(Math.round(abs));
+    return (r < 0 ? '-' : '') + 'R$ ' + texto;
+  }
+
+  /** Barras horizontais: nome em cima, barra embaixo e o valor escrito no fim da barra. */
+  function graficoBarras(linhas, descricao) {
+    var L = 360;
+    var alturaLinha = 48;
+    var maximo = Math.max.apply(null, linhas.map(function (l) { return l.centavos; }).concat([1]));
+    var espacoValor = 112;
+    var conteudo = '';
+    linhas.forEach(function (l, i) {
+      var y = 4 + i * alturaLinha;
+      var w = l.centavos > 0 ? Math.max(4, (l.centavos / maximo) * (L - espacoValor)) : 0;
+      conteudo += textoSvg(0, y + 15, l.rotulo, 'font-size="14" font-weight="600" fill="' + COR.tinta + '"');
+      if (w) conteudo += '<rect x="0" y="' + (y + 22) + '" width="' + w.toFixed(1) + '" height="16" rx="4" fill="' + l.cor + '"/>';
+      conteudo += textoSvg(w + 8, y + 35, formatarReais(l.centavos), 'font-size="14" font-weight="700" fill="' + COR.tinta + '"');
+    });
+    return svg(L, 8 + linhas.length * alturaLinha, conteudo, descricao);
+  }
+
+  /** Dias do mês com quanto entrou/saiu e o saldo acumulado até cada dia. */
+  function serieDiaria(r) {
+    var diasNoMes = new Date(r.ano, r.mes, 0).getDate();
+    var hoje = new Date();
+    var ultimoDia = (hoje.getFullYear() === r.ano && hoje.getMonth() + 1 === r.mes) ? hoje.getDate() : diasNoMes;
+    (r.itens || []).forEach(function (i) {
+      var d = Number(String(i.dataReferencia).slice(8, 10));
+      if (d > ultimoDia) ultimoDia = d; // lançamento com data futura no mês
+    });
+    var dias = [];
+    for (var d = 1; d <= ultimoDia; d++) dias.push({ dia: d, entrou: 0, saiu: 0, saldo: 0, temLancamento: false });
+    (r.itens || []).forEach(function (i) {
+      var dia = dias[Number(String(i.dataReferencia).slice(8, 10)) - 1];
+      if (!dia) return;
+      dia.temLancamento = true;
+      if (i.tipo === 'Entrada') dia.entrou += i.valorCentavos; else dia.saiu += i.valorCentavos;
+    });
+    var acumulado = 0;
+    dias.forEach(function (d) { acumulado += d.entrou - d.saiu; d.saldo = acumulado; });
+    return dias;
+  }
+
+  function passoBonito(bruto) {
+    var potencia = Math.pow(10, Math.floor(Math.log10(Math.max(bruto, 1))));
+    var opcoes = [1, 2, 2.5, 5, 10];
+    for (var i = 0; i < opcoes.length; i++) if (opcoes[i] * potencia >= bruto) return opcoes[i] * potencia;
+    return 10 * potencia;
+  }
+
+  /** Linha do saldo acumulado ao longo do mês (com o zero em destaque). */
+  function graficoLinha(dias, descricao) {
+    var L = 360, A = 190, esq = 62, dir = 14, cima = 14, baixo = 26;
+    var valores = dias.map(function (d) { return d.saldo; });
+    var minimo = Math.min.apply(null, valores.concat([0]));
+    var maximo = Math.max.apply(null, valores.concat([0]));
+    if (maximo === minimo) maximo = minimo + 10000;
+    var passo = passoBonito((maximo - minimo) / 3);
+    var inicio = Math.floor(minimo / passo) * passo;
+    var fim = Math.ceil(maximo / passo) * passo;
+    var n = Math.max(dias.length, 2);
+    function px(i) { return esq + (i / (n - 1)) * (L - esq - dir); }
+    function py(v) { return cima + (1 - (v - inicio) / (fim - inicio)) * (A - cima - baixo); }
+
+    var c = '';
+    for (var v = inicio; v <= fim + 1e-6; v += passo) {
+      c += '<line x1="' + esq + '" x2="' + (L - dir) + '" y1="' + py(v).toFixed(1) + '" y2="' + py(v).toFixed(1) +
+        '" stroke="' + (v === 0 ? COR.zero : COR.grade) + '" stroke-width="' + (v === 0 ? 1.5 : 1) + '"/>';
+      c += textoSvg(esq - 6, py(v) + 4, reaisCurto(v), 'font-size="11" text-anchor="end" fill="' + COR.suave + '"');
+    }
+    var marcas = [1, 5, 10, 15, 20, 25, dias.length].filter(function (d, i, a) {
+      return d <= dias.length && a.indexOf(d) === i && !(d !== dias.length && dias.length - d < 3);
+    });
+    marcas.forEach(function (d) {
+      c += textoSvg(px(d - 1), A - 8, 'dia ' + d, 'font-size="11" text-anchor="middle" fill="' + COR.suave + '"');
+    });
+    var pontos = dias.map(function (d, i) { return px(i).toFixed(1) + ',' + py(d.saldo).toFixed(1); });
+    if (dias.length === 1) pontos.push(px(1).toFixed(1) + ',' + py(dias[0].saldo).toFixed(1));
+    var zeroY = py(0).toFixed(1);
+    c += '<polygon points="' + px(0).toFixed(1) + ',' + zeroY + ' ' + pontos.join(' ') + ' ' +
+      px(Math.max(dias.length - 1, 1)).toFixed(1) + ',' + zeroY + '" fill="' + COR.area + '" fill-opacity="0.14"/>';
+    c += '<polyline points="' + pontos.join(' ') + '" fill="none" stroke="' + COR.linha +
+      '" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
+    dias.forEach(function (d, i) {
+      if (d.temLancamento) {
+        c += '<circle cx="' + px(i).toFixed(1) + '" cy="' + py(d.saldo).toFixed(1) + '" r="4" fill="' + COR.linha +
+          '" stroke="#fff" stroke-width="2"/>';
+      }
+    });
+    var ultimo = dias[dias.length - 1];
+    c += textoSvg(L - dir, Math.max(12, py(ultimo.saldo) - 10), formatarReais(ultimo.saldo),
+      'font-size="12" font-weight="700" text-anchor="end" fill="' + COR.tinta + '"');
+    return { svg: svg(L, A, c, descricao), px: px, py: py, largura: L, altura: A };
+  }
+
+  function despesasPrincipais(r) {
+    var grupos = {};
+    (r.itens || []).forEach(function (i) {
+      if (i.tipo !== 'Saída') return;
+      var nome = i.descricao || 'Sem descrição';
+      var chave = semAcentosSug(nome);
+      if (!grupos[chave]) grupos[chave] = { rotulo: nome, centavos: 0 };
+      grupos[chave].centavos += i.valorCentavos;
+    });
+    var lista = Object.keys(grupos).map(function (k) { return grupos[k]; })
+      .sort(function (a, b) { return b.centavos - a.centavos; });
+    if (lista.length > 5) {
+      var outras = lista.slice(4);
+      lista = lista.slice(0, 4).concat([{
+        rotulo: 'Outras (' + outras.length + ')',
+        centavos: outras.reduce(function (s, o) { return s + o.centavos; }, 0),
+      }]);
+    }
+    return lista.map(function (g) {
+      return { rotulo: g.rotulo.length > 34 ? g.rotulo.slice(0, 33) + '…' : g.rotulo, centavos: g.centavos, cor: COR.saida };
+    });
+  }
+
+  function mostrarDashboard(r) {
+    var t = r.totais || {};
+    $('k-entradas').textContent = formatarReais(t.entradas || 0);
+    $('k-saidas').textContent = formatarReais(t.saidas || 0);
+    $('k-saldo').textContent = formatarReais(t.saldo || 0);
+    $('k-quantidade').textContent = String(t.quantidade || 0);
+    $('kpi-saldo').classList.toggle('negativo', (t.saldo || 0) < 0);
+
+    var nomeMes = MESES[r.mes - 1] + ' de ' + r.ano;
+    var svgs = {};
+    svgs.barras = graficoBarras([
+      { rotulo: 'Dízimos', centavos: t.dizimos || 0, cor: COR.entrada },
+      { rotulo: 'Ofertas', centavos: t.ofertas || 0, cor: COR.entrada },
+      { rotulo: 'Saídas (despesas)', centavos: t.saidas || 0, cor: COR.saida },
+    ], 'Entradas e saídas de ' + nomeMes);
+    $('g-barras').innerHTML = svgs.barras;
+
+    var dias = serieDiaria(r);
+    var linha = graficoLinha(dias, 'Saldo acumulado ao longo de ' + nomeMes);
+    svgs.linha = linha.svg;
+    $('g-linha').innerHTML = linha.svg;
+    prepararDicaLinha($('g-linha'), dias, linha);
+
+    var despesas = despesasPrincipais(r);
+    svgs.despesas = despesas.length
+      ? graficoBarras(despesas, 'Maiores despesas de ' + nomeMes)
+      : svg(360, 40, textoSvg(0, 24, 'Nenhuma despesa neste mês.', 'font-size="14" fill="' + COR.suave + '"'), 'Nenhuma despesa');
+    $('g-despesas').innerHTML = svgs.despesas;
+
+    $('dash').hidden = !(r.itens || []).length;
+    // Já prepara as imagens dos gráficos para o PDF (assim o botão responde na hora).
+    estado.imagensDash = Promise.all([svgParaPng(svgs.barras), svgParaPng(svgs.linha), svgParaPng(svgs.despesas)])
+      .then(function (x) { return { barras: x[0], linha: x[1], despesas: x[2] }; });
+    estado.imagensDash.catch(function () {});
+  }
+
+  /** Ao tocar/passar o dedo no gráfico de linha, mostra o dia e o saldo. */
+  function prepararDicaLinha(caixa, dias, g) {
+    var svgEl = caixa.querySelector('svg');
+    var dica = document.createElement('div');
+    dica.className = 'dica-grafico';
+    dica.hidden = true;
+    caixa.appendChild(dica);
+    var guia = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    guia.setAttribute('stroke', COR.suave);
+    guia.setAttribute('stroke-dasharray', '3 3');
+    guia.setAttribute('y1', '10');
+    guia.setAttribute('y2', String(g.altura - 24));
+    guia.style.display = 'none';
+    svgEl.appendChild(guia);
+    var marca = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    marca.setAttribute('r', '6');
+    marca.setAttribute('fill', COR.linha);
+    marca.setAttribute('stroke', '#fff');
+    marca.setAttribute('stroke-width', '2');
+    marca.style.display = 'none';
+    svgEl.appendChild(marca);
+
+    function mostrar(evento) {
+      var caixaSvg = svgEl.getBoundingClientRect();
+      var escala = g.largura / caixaSvg.width;
+      var x = (evento.clientX - caixaSvg.left) * escala;
+      var melhor = 0;
+      dias.forEach(function (d, i) { if (Math.abs(g.px(i) - x) < Math.abs(g.px(melhor) - x)) melhor = i; });
+      var d = dias[melhor];
+      var cx = g.px(melhor);
+      guia.setAttribute('x1', cx); guia.setAttribute('x2', cx); guia.style.display = '';
+      marca.setAttribute('cx', cx); marca.setAttribute('cy', g.py(d.saldo)); marca.style.display = '';
+      dica.innerHTML = '<strong>Dia ' + d.dia + '</strong> · saldo ' + formatarReais(d.saldo) +
+        (d.temLancamento ? '<br>entrou ' + formatarReais(d.entrou) + ' · saiu ' + formatarReais(d.saiu) : '');
+      dica.hidden = false;
+      var esquerda = cx / escala - dica.offsetWidth / 2;
+      dica.style.left = Math.max(0, Math.min(caixa.clientWidth - dica.offsetWidth, esquerda)) + 'px';
+    }
+    svgEl.addEventListener('pointerdown', mostrar);
+    svgEl.addEventListener('pointermove', mostrar);
+    svgEl.addEventListener('pointerleave', function (e) {
+      if (e.pointerType === 'mouse') { dica.hidden = true; guia.style.display = 'none'; marca.style.display = 'none'; }
+    });
+  }
+
+  /** Converte o desenho (SVG) em imagem PNG para colocar no PDF. */
+  function svgParaPng(textoSvg) {
+    return new Promise(function (resolve, reject) {
+      var img = new Image();
+      img.onload = function () {
+        var escala = 3;
+        var tela = document.createElement('canvas');
+        tela.width = img.width * escala;
+        tela.height = img.height * escala;
+        var ctx = tela.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, tela.width, tela.height);
+        ctx.drawImage(img, 0, 0, tela.width, tela.height);
+        resolve({ dados: tela.toDataURL('image/png'), largura: img.width, altura: img.height });
+      };
+      img.onerror = function () { reject(new Error('Não foi possível preparar os gráficos.')); };
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(textoSvg);
+    });
+  }
+
   // ---------- Exportar para Excel e PDF ----------
   // As planilhas/relatórios são gerados aqui no celular, com bibliotecas abertas
   // baixadas da internet só quando necessário (versões fixas e conferidas por SRI).
@@ -793,6 +1038,7 @@
   function definirExportacao(habilitar) {
     $('exportar-excel').disabled = !habilitar;
     $('exportar-pdf').disabled = !habilitar;
+    $('exportar-dash-pdf').disabled = !habilitar;
   }
 
   function agoraBR() {
@@ -886,17 +1132,15 @@
       .replace(/\u2026/g, '...').replace(/[^\u0000-\u00FF]/g, '');
   }
 
-  function gerarPdf(r) {
-    var doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' });
-    var largura = doc.internal.pageSize.getWidth();
-    var altura = doc.internal.pageSize.getHeight();
-    var M = 14;
-    var nomeMes = MESES[r.mes - 1];
-    var t = r.totais || {};
-    var VERDE = [26, 122, 56];
-    var VERMELHO = [192, 38, 45];
-    var ROCHA = [79, 70, 67];
+  var PDF_M = 14;
+  var VERDE = [26, 122, 56];
+  var VERMELHO = [192, 38, 45];
+  var ROCHA = [79, 70, 67];
 
+  /** Logo, nome da igreja e título no topo da página. */
+  function cabecalhoPdf(doc, titulo) {
+    var largura = doc.internal.pageSize.getWidth();
+    var M = PDF_M;
     try { doc.addImage(D.logoPdf, 'PNG', M, 9, 31, 24.6); } catch (e) { /* sem logo, segue */ }
     var x = M + 37;
     doc.setFont('helvetica', 'bold'); doc.setFontSize(22); doc.setTextColor(28, 23, 22);
@@ -904,9 +1148,31 @@
     doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(107, 95, 92);
     doc.text(textoPdf(D.nomeCompleto), x, 23);
     doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(28, 23, 22);
-    doc.text(textoPdf('Relatório financeiro - ' + nomeMes + ' de ' + r.ano), x, 30.5);
+    doc.text(textoPdf(titulo), x, 30.5);
     doc.setDrawColor(255, 135, 8); doc.setLineWidth(1.2);
     doc.line(M, 37, largura - M, 37);
+  }
+
+  /** "Gerado em ... por ..." e "Página x de y" em todas as páginas. */
+  function rodapePdf(doc) {
+    var largura = doc.internal.pageSize.getWidth();
+    var altura = doc.internal.pageSize.getHeight();
+    var paginas = doc.getNumberOfPages();
+    var rodape = textoPdf('Gerado em ' + agoraBR() + ' por ' + (D.email || ''));
+    for (var p = 1; p <= paginas; p++) {
+      doc.setPage(p);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(107, 95, 92);
+      doc.text(rodape, PDF_M, altura - 8);
+      doc.text('Página ' + p + ' de ' + paginas, largura - PDF_M, altura - 8, { align: 'right' });
+    }
+  }
+
+  function gerarPdf(r) {
+    var doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' });
+    var M = PDF_M;
+    var nomeMes = MESES[r.mes - 1];
+    var t = r.totais || {};
+    cabecalhoPdf(doc, 'Relatório financeiro - ' + nomeMes + ' de ' + r.ano);
 
     doc.autoTable({
       startY: 42,
@@ -961,15 +1227,64 @@
       },
     });
 
-    var paginas = doc.getNumberOfPages();
-    var rodape = textoPdf('Gerado em ' + agoraBR() + ' por ' + (D.email || ''));
-    for (var p = 1; p <= paginas; p++) {
-      doc.setPage(p);
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(107, 95, 92);
-      doc.text(rodape, M, altura - 8);
-      doc.text('Página ' + p + ' de ' + paginas, largura - M, altura - 8, { align: 'right' });
-    }
+    rodapePdf(doc);
     return { blob: doc.output('blob'), nome: nomeArquivo(r, 'relatorio', 'pdf') };
+  }
+
+  /** PDF do dashboard: números do mês + os mesmos gráficos da tela (como imagens). */
+  function gerarPdfDashboard(r, imagens) {
+    var doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' });
+    var largura = doc.internal.pageSize.getWidth();
+    var altura = doc.internal.pageSize.getHeight();
+    var M = PDF_M;
+    var util = largura - 2 * M;
+    var t = r.totais || {};
+    cabecalhoPdf(doc, 'Dashboard financeiro - ' + MESES[r.mes - 1] + ' de ' + r.ano);
+
+    // Quadros com os números principais
+    var quadros = [
+      ['Entradas', formatarReais(t.entradas || 0), VERDE],
+      ['Saídas', formatarReais(t.saidas || 0), VERMELHO],
+      ['Saldo do mês', formatarReais(t.saldo || 0), (t.saldo || 0) < 0 ? VERMELHO : VERDE],
+      ['Lançamentos', String(t.quantidade || 0), [28, 23, 22]],
+    ];
+    var larguraQuadro = (util - 3 * 4) / 4;
+    quadros.forEach(function (q, i) {
+      var x = M + i * (larguraQuadro + 4);
+      doc.setFillColor(246, 243, 242); doc.setDrawColor(216, 207, 204); doc.setLineWidth(0.3);
+      doc.roundedRect(x, 42, larguraQuadro, 20, 2, 2, 'FD');
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(107, 95, 92);
+      doc.text(textoPdf(q[0]), x + 3, 48);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(12.5); doc.setTextColor(q[2][0], q[2][1], q[2][2]);
+      doc.text(textoPdf(q[1]), x + 3, 57);
+    });
+
+    var y = 72;
+    function titulo(texto, x, yy) {
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(28, 23, 22);
+      doc.text(textoPdf(texto), x, yy);
+    }
+    function imagem(img, x, yy, larg) {
+      var alt = larg * img.altura / img.largura;
+      if (yy + alt > altura - 16) { doc.addPage(); yy = 20; }
+      doc.addImage(img.dados, 'PNG', x, yy, larg, alt);
+      return yy + alt;
+    }
+
+    titulo('Saldo ao longo do mês', M, y);
+    var larguraLinha = util * 0.82;
+    y = imagem(imagens.linha, M + (util - larguraLinha) / 2, y + 3, larguraLinha) + 9;
+
+    var meia = (util - 8) / 2;
+    if (y + 60 > altura - 16) { doc.addPage(); y = 20; }
+    titulo('De onde veio e para onde foi', M, y);
+    titulo('Maiores despesas', M + meia + 8, y);
+    var fim1 = imagem(imagens.barras, M, y + 3, meia);
+    var fim2 = imagem(imagens.despesas, M + meia + 8, y + 3, meia);
+    y = Math.max(fim1, fim2);
+
+    rodapePdf(doc);
+    return { blob: doc.output('blob'), nome: nomeArquivo(r, 'dashboard', 'pdf') };
   }
 
   function baixarArquivo(blob, nome) {
@@ -994,12 +1309,16 @@
       return;
     }
     var inicio = Date.now();
-    var botao = $(tipo === 'excel' ? 'exportar-excel' : 'exportar-pdf');
+    var botao = $({ excel: 'exportar-excel', pdf: 'exportar-pdf', dash: 'exportar-dash-pdf' }[tipo]);
     var conteudoBotao = botao.innerHTML;
     botao.disabled = true;
     botao.innerHTML = ICONE_CARREGANDO + ' Preparando...';
 
-    carregarBiblioteca(tipo === 'excel' ? 'xlsx' : 'autotable')
+    var imagensDash = null;
+    var preparar = tipo === 'excel' ? carregarBiblioteca('xlsx')
+      : tipo === 'pdf' ? carregarBiblioteca('autotable')
+      : Promise.all([carregarBiblioteca('jspdf'), estado.imagensDash]).then(function (x) { imagensDash = x[1]; });
+    preparar
       .then(function () {
         // O navegador só deixa baixar logo depois do toque. Se a internet demorou,
         // pede para tocar de novo (agora já está tudo pronto e é instantâneo).
@@ -1009,7 +1328,7 @@
         }
         var arquivo;
         try {
-          arquivo = tipo === 'excel' ? gerarExcel(r) : gerarPdf(r);
+          arquivo = tipo === 'excel' ? gerarExcel(r) : tipo === 'pdf' ? gerarPdf(r) : gerarPdfDashboard(r, imagensDash);
         } catch (e) {
           throw new Error('Não foi possível gerar o arquivo. (Detalhe: ' + (e && e.message ? e.message : e) + ')');
         }
@@ -1030,12 +1349,24 @@
   //  Navegação entre as telas (com o botão "voltar" do Android)
   // =====================================================================
 
+  var TITULOS = { lista: 'Lançamentos do mês', dash: 'Dashboard do mês' };
+
   function exibirTela(tela) {
+    var vinhaDoMes = estado.telaAtual === 'lista' || estado.telaAtual === 'dash';
     estado.telaAtual = tela;
+    var doMes = tela === 'lista' || tela === 'dash';
     $('tela-novo').hidden = tela !== 'novo';
-    $('tela-lista').hidden = tela !== 'lista';
+    $('tela-lista').hidden = !doMes;
+    $('parte-lista').hidden = tela !== 'lista';
+    $('parte-dash').hidden = tela !== 'dash';
+    if (doMes) $('titulo-lista').textContent = TITULOS[tela];
+    document.querySelectorAll('.menu-item').forEach(function (b) {
+      if (b.getAttribute('data-tela') === tela) b.setAttribute('aria-current', 'page');
+      else b.removeAttribute('aria-current');
+    });
     window.scrollTo(0, 0);
-    if (tela === 'lista') {
+    // Entre "Lançamentos" e "Dashboard" os dados do mês já estão carregados.
+    if (doMes && !(vinhaDoMes && estado.listaAtual)) {
       carregarLista();
       // Já vai baixando as ferramentas de exportação, para o botão responder rápido.
       setTimeout(function () {
@@ -1049,15 +1380,22 @@
     return estado.historicoAtivo && window.google && google.script && google.script.history;
   }
 
-  function irParaLista() {
+  /** Menu: "Novo lançamento", "Lançamentos" e "Dashboard". */
+  function irPara(tela) {
+    if (tela === estado.telaAtual) return;
+    if (tela === 'novo') { voltarParaNovo(); return; }
     if (temHistorico()) {
-      try { google.script.history.push({ tela: 'lista' }, {}, 'lista'); } catch (e) { estado.historicoAtivo = false; }
+      try {
+        // Da tela inicial empilha (o "voltar" do celular retorna a ela); entre as outras, substitui.
+        if (estado.telaAtual === 'novo') google.script.history.push({ tela: tela }, {}, tela);
+        else google.script.history.replace({ tela: tela }, {}, tela);
+      } catch (e) { estado.historicoAtivo = false; }
     }
-    exibirTela('lista');
+    exibirTela(tela);
   }
 
   function voltarParaNovo() {
-    if (temHistorico() && estado.telaAtual === 'lista') {
+    if (temHistorico() && estado.telaAtual !== 'novo') {
       // Volta uma página no histórico (o mesmo que o botão "voltar" do celular).
       // Se o navegador não deixar, volta direto e desliga o histórico.
       var reserva = setTimeout(function () {
@@ -1077,7 +1415,7 @@
         google.script.history.replace({ tela: 'novo' }, {}, '');
         google.script.history.setChangeHandler(function (e) {
           clearTimeout(estado.aguardandoVolta);
-          var tela = e && e.state && e.state.tela === 'lista' ? 'lista' : 'novo';
+          var tela = e && e.state && (e.state.tela === 'lista' || e.state.tela === 'dash') ? e.state.tela : 'novo';
           if (!$('modal-fundo').hidden) fecharModal();
           if (tela !== estado.telaAtual) exibirTela(tela);
         });
@@ -1134,9 +1472,10 @@
     });
 
     $('form-lancamento').addEventListener('submit', salvar);
-    $('ir-lista').addEventListener('click', irParaLista);
-    $('voltar').addEventListener('click', voltarParaNovo);
-    $('voltar-rodape').addEventListener('click', voltarParaNovo);
+    document.querySelectorAll('.menu-item').forEach(function (b) {
+      b.addEventListener('click', function () { irPara(b.getAttribute('data-tela')); });
+    });
+    $('exportar-dash-pdf').addEventListener('click', function () { exportar('dash'); });
     $('modal-cancelar').addEventListener('click', fecharModal);
     $('modal-confirmar').addEventListener('click', confirmarExclusao);
     $('modal-fundo').addEventListener('click', function (e) { if (e.target === $('modal-fundo')) fecharModal(); });

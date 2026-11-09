@@ -299,7 +299,7 @@ async function digitarValor(p, digitos) {
   });
 
   await passo('Tela 2 lista o mês com cores e totais corretos', async function () {
-    await p.click('#ir-lista');
+    await p.click('#nav-lista');
     assert.strictEqual(await p.isVisible('#tela-lista'), true);
     await p.waitForSelector('#resumo:not([hidden])');
     // Mês exibido = mês atual; os lançamentos de teste foram em datas variadas.
@@ -361,21 +361,21 @@ async function digitarValor(p, digitos) {
   });
 
   await passo('botão Voltar e o "voltar" do celular retornam à Tela 1', async function () {
-    await p.click('#voltar');
+    await p.click('#nav-novo');
     await p.waitForSelector('#tela-novo:not([hidden])');
     assert.strictEqual(await p.isVisible('#tela-lista'), false);
-    await p.click('#ir-lista');
+    await p.click('#nav-lista');
     await p.waitForSelector('#tela-lista:not([hidden])');
     await p.goBack();
     await p.waitForSelector('#tela-novo:not([hidden])');
-    await p.click('#ir-lista');
+    await p.click('#nav-lista');
     await p.waitForSelector('#tela-lista:not([hidden])');
-    await p.click('#voltar-rodape');
+    await p.click('#nav-novo');
     await p.waitForSelector('#tela-novo:not([hidden])');
   });
 
   await passo('lista mostra "por <responsável>"', async function () {
-    await p.click('#ir-lista');
+    await p.click('#nav-lista');
     await p.waitForSelector('#resumo:not([hidden])');
     await p.selectOption('#filtro-mes', '11');
     await p.waitForFunction(function () {
@@ -436,8 +436,57 @@ async function digitarValor(p, digitos) {
     await limparAviso(p);
     await p.click('#exportar-excel');
     assert.ok(/Não há lançamentos em Janeiro de 2026/.test(await textoAviso(p)));
-    await p.click('#voltar');
+    await p.click('#nav-novo');
     await p.waitForSelector('#tela-novo:not([hidden])');
+  });
+
+  await passo('menu: Dashboard mostra números e gráficos do mês; menu marca a tela atual', async function () {
+    await p.click('#nav-lista');
+    await p.waitForSelector('#resumo:not([hidden])');
+    await p.selectOption('#filtro-mes', '11');
+    await p.waitForFunction(function () { return document.querySelectorAll('#lista .item').length > 0; });
+    var saldoLista = await p.textContent('#t-saldo');
+    await p.click('#nav-dash');
+    assert.strictEqual(await p.getAttribute('#nav-dash', 'aria-current'), 'page');
+    assert.strictEqual(await p.getAttribute('#nav-lista', 'aria-current'), null);
+    assert.strictEqual(await p.textContent('#titulo-lista'), 'Dashboard do mês');
+    assert.strictEqual(await p.isVisible('#parte-lista'), false);
+    await p.waitForSelector('#dash:not([hidden])');
+    assert.strictEqual(await p.inputValue('#filtro-mes'), '11', 'mesmo mês da tela de lançamentos');
+    assert.strictEqual(await p.textContent('#k-saldo'), saldoLista);
+    assert.strictEqual(await p.$$eval('#dash svg', function (e) { return e.length; }), 3);
+    assert.ok(/Dízimos/.test(await p.textContent('#g-barras')));
+    assert.ok(/Aluguel|Nenhuma despesa/.test(await p.textContent('#g-despesas')));
+    // toque no gráfico de linha mostra o dia
+    var grafico = p.locator('#g-linha svg');
+    var b = await grafico.boundingBox();
+    await grafico.click({ position: { x: b.width * 0.5, y: b.height * 0.5 } });
+    assert.ok(/Dia \d+ · saldo R\$/.test(await p.textContent('#g-linha .dica-grafico')));
+    await p.screenshot({ path: path.join(PRINTS, '9-dashboard.png'), fullPage: true });
+  });
+
+  await passo('exportar dashboard em PDF (com os gráficos)', async function () {
+    await limparAviso(p);
+    var esperando = p.waitForEvent('download');
+    await p.click('#exportar-dash-pdf');
+    var download = await esperando;
+    assert.ok(/^ADRER-dashboard-2026-\d{2}\.pdf$/.test(download.suggestedFilename()), download.suggestedFilename());
+    var texto = fs.readFileSync(await download.path()).toString('latin1');
+    ['Dashboard financeiro', 'Saldo ao longo do m', 'De onde veio', 'Maiores despesas', 'Lançamentos'].forEach(function (t) {
+      assert.ok(texto.indexOf(t) >= 0, 'PDF deveria conter "' + t + '"');
+    });
+    var imagens = (texto.match(/\/Subtype \/Image/g) || []).length;
+    assert.ok(imagens >= 4, 'logo + 3 gráficos, achou ' + imagens);
+    assert.ok(/baixado/.test(await textoAviso(p)));
+  });
+
+  await passo('Lançamentos ↔ Dashboard e "voltar" do celular', async function () {
+    await p.click('#nav-lista');
+    assert.strictEqual(await p.isVisible('#parte-lista'), true);
+    assert.strictEqual(await p.isVisible('#parte-dash'), false);
+    await p.goBack();
+    await p.waitForSelector('#tela-novo:not([hidden])');
+    assert.strictEqual(await p.getAttribute('#nav-novo', 'aria-current'), 'page');
   });
 
   await passo('nenhum erro de JavaScript na página', async function () {
@@ -457,15 +506,30 @@ async function digitarValor(p, digitos) {
       await q.click('[data-tipo="Saída"]');
       await q.fill('#descricao', 'Conta de luz');
       await q.screenshot({ path: path.join(PRINTS, '7-' + nome + '-saida.png') });
-      await q.click('#ir-lista');
+      await q.click('#nav-lista');
       await q.waitForSelector('#resumo:not([hidden])');
       await q.screenshot({ path: path.join(PRINTS, '8-' + nome + '-lista.png'), fullPage: true });
+      await q.click('#nav-dash');
+      await q.waitForSelector('#dash:not([hidden])');
+      await q.screenshot({ path: path.join(PRINTS, '9-' + nome + '-dashboard.png'), fullPage: true });
+      var larguraDash = await q.evaluate(function () {
+        return document.documentElement.scrollWidth - document.documentElement.clientWidth;
+      });
+      assert.strictEqual(larguraDash, 0, 'dashboard sem rolagem horizontal (' + nome + ')');
+      await q.click('#nav-lista');
+      await q.waitForSelector('#parte-lista:not([hidden])');
       if (nome === 'pixel7') {
         // relatório com os dados de exemplo, para conferência visual
         var esperandoPdf = q.waitForEvent('download');
         await q.waitForFunction(function () { return !document.getElementById('exportar-pdf').disabled; });
         await q.click('#exportar-pdf');
         fs.copyFileSync(await (await esperandoPdf).path(), path.join(PRINTS, 'relatorio-exemplo.pdf'));
+        await q.click('#nav-dash');
+        await q.waitForSelector('#dash:not([hidden])');
+        await q.waitForTimeout(300);
+        var esperandoDash = q.waitForEvent('download');
+        await q.click('#exportar-dash-pdf');
+        fs.copyFileSync(await (await esperandoDash).path(), path.join(PRINTS, 'dashboard-exemplo.pdf'));
       }
       var larguraExtra = await q.evaluate(function () {
         return document.documentElement.scrollWidth - document.documentElement.clientWidth;
@@ -481,12 +545,14 @@ async function digitarValor(p, digitos) {
     fs.writeFileSync(host, '<!doctype html><meta charset="utf-8"><iframe id="app" style="width:412px;height:860px;border:0" ' +
       'sandbox="allow-downloads allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts" ' +
       'src="preview.html?latencia=50&exemplos=1"></iframe>');
-    var contexto = await navegador.newContext({ acceptDownloads: true, locale: 'pt-BR', timezoneId: 'America/Sao_Paulo' });
+    var contexto = await navegador.newContext({
+      acceptDownloads: true, locale: 'pt-BR', timezoneId: 'America/Sao_Paulo', viewport: { width: 500, height: 1000 },
+    });
     await servirBibliotecas(contexto);
     var q = await contexto.newPage();
     await q.goto('file://' + host);
     var f = q.frameLocator('#app');
-    await f.locator('#ir-lista').click();
+    await f.locator('#nav-lista').click();
     await f.locator('#resumo:not([hidden])').waitFor();
     await q.waitForTimeout(300);
     var esperando = q.waitForEvent('download');
@@ -498,7 +564,7 @@ async function digitarValor(p, digitos) {
 
   await passo('sem internet para baixar a ferramenta: mensagem clara', async function () {
     var q = await novaPagina(navegador, { exemplos: true, semInternet: true });
-    await q.click('#ir-lista');
+    await q.click('#nav-lista');
     await q.waitForSelector('#resumo:not([hidden])');
     await limparAviso(q);
     await q.click('#exportar-pdf');
