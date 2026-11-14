@@ -53,13 +53,19 @@ M16. [U] Teste no celular, ajustes, guia novo (README), desligar login por e-mai
   Comandos (em `app/`, com `EXPO_TOKEN=proxy-injected NODE_USE_ENV_PROXY=1`):
   - APK novo (só quando mudar algo nativo/versão): `npx eas-cli build -p android --profile producao --non-interactive --no-wait`
   - Atualização sem reinstalar (mudanças só de telas/lógica): `npx eas-cli update --channel producao --message "..." --non-interactive`
-- **Próximo passo exato (depende do usuário) — M16:**
-  1. Usuário cria o cliente OAuth no Google Cloud e liga o provedor Google no painel do Supabase
-     (URI de redirecionamento: https://nkkqbqvhuumtlywlstws.supabase.co/auth/v1/callback).
-     Conferir com `NODE_USE_ENV_PROXY=1 node supabase/configurar-login.mjs` ("Login com Google ligado: true").
-  2. Usuário instala o APK e testa: login, lançar, foto, exportar Excel/PDF, lembrete, modo avião.
-  3. Corrigir o que aparecer (preferir `eas update`), rodar a importação da planilha de novo,
-     desligar o login por e-mail/senha, escrever o guia novo no README, entrega.
+- **M16 em andamento (14/11/2026):** usuário criou o cliente OAuth (Google Cloud em modo "Testando",
+  com vitor3457@gmail.com como usuário de teste) e ligou o Google no Supabase. Instalou o APK e
+  confirmou no celular: login Google, lançar, modo offline ("a enviar" → "Sincronizado"), lista, modo escuro.
+  Login por e-mail/senha DESLIGADO no Supabase (para rodar `npm run test:integracao`, religar
+  `external_email_enabled` temporariamente pela Management API e desligar de novo).
+- **Próximo passo exato:**
+  1. Usuário responder se quer o redesenho (tela inicial de resumo + botão "+", menu flutuante,
+     lista por dia, gráficos novos, animações). Se sim: implementar e enviar por `eas update`.
+  2. Quando vier o e-mail do tesoureiro: incluir em Google Cloud → Público-alvo → Usuários de teste
+     (o usuário faz) e em Mais → Usuários no app (o usuário faz).
+  3. No dia da troca: rodar `supabase/importar-planilha.mjs --aplicar` de novo, escrever o guia novo
+     no README, avisar para parar de usar o app antigo.
+  4. Opcional: página de política de privacidade para publicar o OAuth (acaba com o relogin a cada 7 dias).
 - Nos testes de tela, as abas ficam montadas uma sob a outra (z-index): escopar seletores por tela.
 - Comandos (dentro de `app/`): `npm test` · `npm run typecheck` · `npm run test:integracao`.
   Na raiz: `npm run banco:aplicar` · `npm run banco:testar`.
