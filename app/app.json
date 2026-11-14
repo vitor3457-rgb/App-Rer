@@ -56,6 +56,25 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "owner": "gabs_devai",
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "ca588200-5fb1-418c-b5da-08a07b974658"
+      }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/ca588200-5fb1-418c-b5da-08a07b974658",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     }
   }
 }

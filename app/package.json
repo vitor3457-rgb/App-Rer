@@ -49,6 +49,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^22.20.5",
     "@types/react": "~19.3.0",
+    "eas-cli": "^27.10.0",
     "jest": "^30.5.2",
     "jest-expo": "~58.0.14",
     "typescript": "~6.0.3"
