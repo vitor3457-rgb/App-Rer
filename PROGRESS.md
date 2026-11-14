@@ -26,7 +26,7 @@ M11. [x] Membros/dizimistas (cadastro + histórico).
 M12. [x] Ajustes: tema, responsáveis, usuários autorizados (admin), saldo de abertura, lembrete, sincronização.
 M13. [x] Testes de interface (web + Playwright, modo demo) e integração real com o Supabase.
 M14. [x] Importar os lançamentos da planilha atual.
-M15. [ ] Gerar o APK (EAS Build) e atualizações automáticas (EAS Update). [U: token do Expo válido]
+M15. [x] Gerar o APK (EAS Build) e atualizações automáticas (EAS Update). [U: token do Expo válido]
 M16. [U] Teste no celular, ajustes, guia novo (README), desligar login por e-mail/senha, entrega.
 
 ### Estado atual da Fase 2
@@ -46,13 +46,20 @@ M16. [U] Teste no celular, ajustes, guia novo (README), desligar login por e-mai
 - **M15 preparado:** `app/eas.json` (perfil `producao`, APK), bundle Android compila
   (`EXPO_OFFLINE=1 npx expo export -p android`), expo-doctor 18/20 (as 2 falhas são só falta de rede).
   Login no Supabase configurado por `supabase/configurar-login.mjs` (retorno `adrer://entrar`).
-- **Próximo passo exato (depende do usuário):**
-  1. Token do Expo válido (formulário seguro, host api.expo.dev) → `npx eas-cli init` (cria o projeto e
-     grava o projectId no app.json), configurar `updates.url` + `runtimeVersion` (expo-updates),
-     `EXPO_TOKEN=proxy-injected npx eas-cli build -p android --profile producao --non-interactive`.
-  2. Usuário cria o cliente OAuth no Google Cloud e liga o provedor Google no painel do Supabase
+- **M15 feito (14/11/2026):** projeto Expo `@gabs_devai/adrer-financeiro`
+  (projectId ca588200-5fb1-418c-b5da-08a07b974658), canal de atualização `producao`, runtime 1.0.0.
+  1º APK (build 7532bb3d-7e30-4e05-93eb-ad3158179c0c, versionCode 2):
+  https://expo.dev/artifacts/eas/h6cfqYylHrLJj8vBLUw2x4JERQjeoP7DVVvS4lOgpSw.apk (link vale até 28/11/2026).
+  Comandos (em `app/`, com `EXPO_TOKEN=proxy-injected NODE_USE_ENV_PROXY=1`):
+  - APK novo (só quando mudar algo nativo/versão): `npx eas-cli build -p android --profile producao --non-interactive --no-wait`
+  - Atualização sem reinstalar (mudanças só de telas/lógica): `npx eas-cli update --channel producao --message "..." --non-interactive`
+- **Próximo passo exato (depende do usuário) — M16:**
+  1. Usuário cria o cliente OAuth no Google Cloud e liga o provedor Google no painel do Supabase
      (URI de redirecionamento: https://nkkqbqvhuumtlywlstws.supabase.co/auth/v1/callback).
-  3. Usuário instala o APK e testa (login, lançar, foto, exportar, lembrete, offline) → M16.
+     Conferir com `NODE_USE_ENV_PROXY=1 node supabase/configurar-login.mjs` ("Login com Google ligado: true").
+  2. Usuário instala o APK e testa: login, lançar, foto, exportar Excel/PDF, lembrete, modo avião.
+  3. Corrigir o que aparecer (preferir `eas update`), rodar a importação da planilha de novo,
+     desligar o login por e-mail/senha, escrever o guia novo no README, entrega.
 - Nos testes de tela, as abas ficam montadas uma sob a outra (z-index): escopar seletores por tela.
 - Comandos (dentro de `app/`): `npm test` · `npm run typecheck` · `npm run test:integracao`.
   Na raiz: `npm run banco:aplicar` · `npm run banco:testar`.
