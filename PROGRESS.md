@@ -95,3 +95,8 @@ quando ele colar a URL de retorno, gravá-la em `url.txt`. Conferir com `npx cla
   saldo, quantidade) e 3 gráficos SVG feitos à mão (barras dízimos/ofertas/saídas, linha do saldo
   acumulado com toque para ver o dia, maiores despesas). PDF do dashboard: gráficos convertidos
   SVG→PNG (canvas) e colocados no jsPDF. 32 testes de servidor e 26 de interface.
+
+## Próxima fase: migração para Expo + Supabase — PREPARAÇÃO (não programar sem aval)
+- Tudo recebido está em **MIGRACAO.md** (URL/chave pública do Supabase, usuário Expo, login Google,
+  extras aprovados, importar planilha = sim, saldo acumulado entre meses).
+- Pendências do usuário: e-mail do tesoureiro; saldo de abertura do caixa; aval para começar (ele troca o modelo).
