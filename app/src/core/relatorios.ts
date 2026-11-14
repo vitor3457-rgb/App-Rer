@@ -190,11 +190,10 @@ ${quadro('Saldo em caixa', formatarReais(resumo.saldoCaixa), corSaldo(resumo.sal
 <div><h2>De onde veio e para onde foi</h2><div class="grafico">${g.barras.xml}</div></div>
 <div><h2>Maiores despesas</h2><div class="grafico">${g.despesas ? g.despesas.xml : '<p>Nenhuma despesa neste mês.</p>'}</div></div>
 </div>
-<div class="duas bloco">
-<div><h2>Últimos meses</h2><div class="grafico">${g.comparativo.xml}</div></div>
-<div><h2>&nbsp;</h2><table class="lista"><thead><tr><th>Mês</th><th style="text-align:right">Entradas</th><th style="text-align:right">Saídas</th><th style="text-align:right">Resultado</th><th style="text-align:right">Caixa</th></tr></thead>
-<tbody>${linhasComparativo}</tbody></table></div>
-</div>`;
+<div class="bloco"><h2>Últimos meses</h2>
+<div class="grafico" style="width:62%;margin:0 auto 8pt">${g.comparativo.xml}</div>
+<table class="lista"><thead><tr><th>Mês</th><th style="text-align:right">Entradas</th><th style="text-align:right">Saídas</th><th style="text-align:right">Resultado</th><th style="text-align:right">Saldo em caixa</th></tr></thead>
+<tbody>${linhasComparativo}</tbody></table></div>`;
   return pagina('Dashboard financeiro - ' + nomeMes(resumo.mes), cab, corpo);
 }
 

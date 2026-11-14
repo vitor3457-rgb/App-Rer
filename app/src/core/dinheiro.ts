@@ -27,6 +27,30 @@ export function digitosParaCentavos(texto: string, maximoDigitos = 9): number {
   return digitos ? parseInt(digitos, 10) : 0;
 }
 
+/**
+ * Campo de valor "tipo maquininha": não importa onde o cursor esteja, número novo entra
+ * pela direita e apagar tira o último. Recebe o texto de antes e o de depois da tecla.
+ */
+export function aplicarDigitacao(atual: number, anterior: string, novo: string, maximoDigitos = 9): number {
+  const a = anterior.replace(/\D/g, '');
+  const n = novo.replace(/\D/g, '');
+  if (!a || !atual) return digitosParaCentavos(novo, maximoDigitos);
+  // apagou um caractere (um número, a vírgula, um ponto...)
+  if (n.length === a.length - 1 || (n.length === a.length && novo.length < anterior.length)) {
+    return Math.floor(atual / 10);
+  }
+  // digitou (ou colou) números a mais: descobre quais e põe no fim
+  if (n.length > a.length) {
+    const quantos = n.length - a.length;
+    let i = 0;
+    while (i < a.length && a[i] === n[i]) i++;
+    const resultado = String(atual) + n.slice(i, i + quantos);
+    return resultado.length > maximoDigitos ? atual : parseInt(resultado, 10);
+  }
+  // trocou tudo (selecionou e digitou por cima)
+  return digitosParaCentavos(novo, maximoDigitos);
+}
+
 /** Texto curto para eixos de gráfico: "R$ 1,2 mil", "R$ 450", "-R$ 2 mil". */
 export function reaisCurto(centavos: number): string {
   const reais = centavos / 100;

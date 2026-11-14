@@ -61,7 +61,9 @@
     "lint": "expo lint",
     "test": "jest",
     "typecheck": "tsc --noEmit",
-    "test:integracao": "NODE_USE_ENV_PROXY=1 jest --config jest.integracao.config.js --runInBand"
+    "test:integracao": "NODE_USE_ENV_PROXY=1 jest --config jest.integracao.config.js --runInBand",
+    "web:demo": "EXPO_PUBLIC_DEMO=1 EXPO_OFFLINE=1 expo export --platform web --output-dir dist-demo",
+    "test:telas": "npm run web:demo && node e2e/telas.js"
   },
   "private": true,
   "jest": {

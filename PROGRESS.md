@@ -17,14 +17,14 @@ M2.  [x] Banco: migrações SQL (tabelas, RLS, gatilhos, view para BI, bucket de
 M3.  [x] Projeto Expo (TypeScript + Expo Router), tema ADRER claro/escuro, componentes base.
 M4.  [x] Núcleo em `app/src/core` com testes: dinheiro, datas, validação, totais e saldo acumulado.
 M5.  [x] Sincronização offline (cache local + fila de envio) com testes; remoto demo e remoto Supabase.
-M6.  [ ] Login com Google (Supabase Auth) + tela "não autorizado". [U: criar OAuth no Google Cloud]
-M7.  [ ] Tela Novo lançamento (responsável, valor, tipo, contribuinte/membro, descrição, data, foto).
-M8.  [ ] Tela Lançamentos (mês, busca e filtros, saldo anterior → saldo em caixa, excluir, detalhe/foto).
-M9.  [ ] Dashboard (cartões, gráficos, comparar meses, saldo em caixa).
-M10. [ ] Exportar Excel e PDF (lançamentos e dashboard).
-M11. [ ] Membros/dizimistas (cadastro + histórico).
-M12. [ ] Ajustes: tema, responsáveis, usuários autorizados (admin), saldo de abertura, lembrete, sincronização.
-M13. [ ] Testes de interface (web + Playwright, modo demo) e integração real com o Supabase.
+M6.  [x] Login com Google (Supabase Auth) + tela "não autorizado". [U: criar OAuth no Google Cloud]
+M7.  [x] Tela Novo lançamento (responsável, valor, tipo, contribuinte/membro, descrição, data, foto).
+M8.  [x] Tela Lançamentos (mês, busca e filtros, saldo anterior → saldo em caixa, excluir, detalhe/foto).
+M9.  [x] Dashboard (cartões, gráficos, comparar meses, saldo em caixa).
+M10. [x] Exportar Excel e PDF (lançamentos e dashboard).
+M11. [x] Membros/dizimistas (cadastro + histórico).
+M12. [x] Ajustes: tema, responsáveis, usuários autorizados (admin), saldo de abertura, lembrete, sincronização.
+M13. [x] Testes de interface (web + Playwright, modo demo) e integração real com o Supabase.
 M14. [ ] Importar os lançamentos da planilha atual.
 M15. [ ] Gerar o APK (EAS Build) e atualizações automáticas (EAS Update). [U: token do Expo válido]
 M16. [U] Teste no celular, ajustes, guia novo (README), desligar login por e-mail/senha, entrega.
@@ -33,12 +33,16 @@ M16. [U] Teste no celular, ajustes, guia novo (README), desligar login por e-mai
 - **Última etapa concluída:** M5. Banco aplicado; núcleo (`app/src/core`, 35 testes); motor offline
   (`app/src/dados/banco.ts`, 29 testes); remoto Supabase (`remotoSupabase.ts`) validado contra o
   banco real (`npm run test:integracao` em `app/`, 8 testes; cria contas temporárias e limpa tudo).
-- **Feito também:** M3 (tema, componentes em `app/src/ui`), login/rotas (`app/src/app/_layout.tsx`,
-  `login.tsx`, `sem-acesso.tsx`, abas) e M7 (formulário `ui/Formulario.tsx` + tela `(abas)/index.tsx`).
-  Modo demo: `EXPO_PUBLIC_DEMO=1 EXPO_OFFLINE=1 npx expo export -p web --output-dir dist-demo`
-  e depois `node e2e/fumaca.js` (prints em `app/e2e/prints/`).
-- **Próximo passo exato:** M8 — trocar as telas provisórias: `(abas)/lancamentos.tsx`,
-  `lancamento/[id].tsx`; depois M9 `dashboard.tsx`, M10 exportar, M11 membros, M12 `mais.tsx` e ajustes.
+- **Feito também:** M3 e M6–M13: todas as telas (`app/src/app`), componentes (`app/src/ui`), exportação
+  Excel/PDF (`core/relatorios.ts` + `ui/exportar.ts`), gráficos SVG (`core/graficos.ts`), lembrete,
+  modo escuro. Testes: 73 unitários (`npm test`), 29 de tela no Chromium (`npm run test:telas`,
+  modo demo, prints em `app/e2e/prints/`), 8 de integração real, 46 do banco.
+  O login Google está programado (`dados/sessaoSupabase.ts`), mas **ainda não foi testado de verdade**:
+  falta o usuário criar o cliente OAuth no Google Cloud e ligar o provedor Google no Supabase.
+- **Próximo passo exato:** M14 (importar a planilha antiga: ler com o token do clasp em ~/.clasprc.json
+  via Drive export, converter e inserir por SQL) e M15 (EAS: `eas.json`, expo-updates, build do APK —
+  precisa de token do Expo válido). Depois M16 com o usuário.
+- Nos testes de tela, as abas ficam montadas uma sob a outra (z-index): escopar seletores por tela.
 - Comandos (dentro de `app/`): `npm test` · `npm run typecheck` · `npm run test:integracao`.
   Na raiz: `npm run banco:aplicar` · `npm run banco:testar`.
 - Observações técnicas:

@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Pressable, Switch, Text, View } from 'react-native';
 
 import { dataHoraBR } from '@/core/datas';
-import { digitosParaCentavos, formatarReais } from '@/core/dinheiro';
+import { aplicarDigitacao, formatarReais } from '@/core/dinheiro';
 import { MODO_DEMO } from '@/config';
 import { banco, remoto, sair } from '@/dados';
 import { useBanco, useCaixa, useEhAdmin, useSessao } from '@/dados/hooks';
@@ -226,7 +226,7 @@ export default function Mais() {
 
       <Janela visivel={janela === 'abertura'} titulo="Saldo de abertura" aoFechar={() => setJanela('')} testID="janela-abertura">
         <Texto suave>É o dinheiro que a igreja já tinha em caixa antes do primeiro lançamento feito no app. Todos os saldos partem dele.</Texto>
-        <CampoTexto testID="abertura-valor" grande value={valorAbertura ? formatarReais(valorAbertura) : ''} onChangeText={(t) => setValorAbertura(digitosParaCentavos(t))} placeholder="R$ 0,00" keyboardType="number-pad" inputMode="numeric" accessibilityLabel="Valor do saldo de abertura" />
+        <CampoTexto testID="abertura-valor" grande value={valorAbertura ? formatarReais(valorAbertura) : ''} onChangeText={(t) => setValorAbertura(aplicarDigitacao(valorAbertura, valorAbertura ? formatarReais(valorAbertura) : '', t))} placeholder="R$ 0,00" keyboardType="number-pad" inputMode="numeric" accessibilityLabel="Valor do saldo de abertura" />
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Texto>O caixa começou negativo (devendo)</Texto>
           <Switch testID="abertura-negativo" value={negativo} onValueChange={setNegativo} trackColor={{ true: c.saida, false: c.borda }} />

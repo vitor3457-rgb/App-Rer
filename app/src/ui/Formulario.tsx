@@ -6,7 +6,7 @@ import { Platform, Pressable, Text, View } from 'react-native';
 
 import { SUGESTOES_DESPESA } from '@/config';
 import { hojeISO, somarDias } from '@/core/datas';
-import { digitosParaCentavos, formatarReais } from '@/core/dinheiro';
+import { aplicarDigitacao, formatarReais } from '@/core/dinheiro';
 import { semRepetir, sugerir } from '@/core/texto';
 import { Lancamento } from '@/core/tipos';
 import { maisUsados } from '@/core/totais';
@@ -138,6 +138,7 @@ export function FormularioLancamento({
   }
 
   const com = (campo: Campo) => erro?.campo === campo;
+  const textoValor = centavos ? formatarReais(centavos) : '';
 
   return (
     <Cartao style={{ gap: ESPACO.g + 2 }}>
@@ -152,7 +153,7 @@ export function FormularioLancamento({
                 key={nome}
                 testID={'responsavel-' + nome}
                 accessibilityRole="button"
-                accessibilityLabel={'Responsável: ' + nome}
+                accessibilityLabel={'Responsável: ' + nome + (escolhido ? ' (escolhido)' : '')}
                 accessibilityState={{ selected: escolhido }}
                 onPress={() => { toque.leve(); setResponsavel(nome); limparErro('responsavel'); }}
                 style={{
@@ -174,13 +175,12 @@ export function FormularioLancamento({
           testID="valor"
           grande
           erro={com('valor')}
-          value={centavos ? formatarReais(centavos) : ''}
-          onChangeText={(t) => { setCentavos(digitosParaCentavos(t)); limparErro('valor'); }}
+          value={textoValor}
+          onChangeText={(t) => { setCentavos(aplicarDigitacao(centavos, textoValor, t)); limparErro('valor'); }}
           placeholder="R$ 0,00"
           keyboardType="number-pad"
           inputMode="numeric"
           returnKeyType="done"
-          selection={Platform.OS === 'web' ? undefined : { start: 99, end: 99 }}
           accessibilityLabel="Valor"
         />
       </View>

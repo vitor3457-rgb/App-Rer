@@ -1,7 +1,7 @@
 import {
   dataBR, dataPorExtenso, diasNoMes, ehDataValida, hojeISO, mesDe, nomeMes, nomeMesCurto, somarDias, somarMeses,
 } from '../datas';
-import { digitosParaCentavos, formatarComSinal, formatarReais, lerValorPlanilha, reaisCurto } from '../dinheiro';
+import { aplicarDigitacao, digitosParaCentavos, formatarComSinal, formatarReais, lerValorPlanilha, reaisCurto } from '../dinheiro';
 import { limparTexto, listarNomes, normalizar, semRepetir, sugerir } from '../texto';
 
 describe('dinheiro', () => {
@@ -23,6 +23,21 @@ describe('dinheiro', () => {
     expect(digitosParaCentavos('abc')).toBe(0);
     expect(digitosParaCentavos('')).toBe(0);
     expect(digitosParaCentavos('1234567899')).toBe(123456789); // corta no limite de dígitos
+  });
+
+  test('digitação: números entram pela direita e apagar tira o último, com o cursor em qualquer lugar', () => {
+    expect(aplicarDigitacao(0, '', '5')).toBe(5);
+    expect(aplicarDigitacao(5, 'R$ 0,05', 'R$ 0,050')).toBe(50); // digitou no fim
+    expect(aplicarDigitacao(5, 'R$ 0,05', 'R$ 0,705')).toBe(57); // digitou no meio: vai para o fim do mesmo jeito
+    expect(aplicarDigitacao(5000, 'R$ 50,00', '7R$ 50,00')).toBe(50007); // digitou no começo
+    expect(aplicarDigitacao(5000, 'R$ 50,00', 'R$ 50,0')).toBe(500); // apagou no fim
+    expect(aplicarDigitacao(5000, 'R$ 50,00', 'R$ 0,00')).toBe(500); // apagou o "5" no meio
+    expect(aplicarDigitacao(5000, 'R$ 50,00', 'R$ 5000')).toBe(500); // apagou a vírgula
+    expect(aplicarDigitacao(5, 'R$ 0,05', 'R$ 0,0')).toBe(0);
+    expect(aplicarDigitacao(5000, 'R$ 50,00', '7')).toBe(7); // selecionou tudo e digitou
+    expect(aplicarDigitacao(5000, 'R$ 50,00', '')).toBe(0); // selecionou tudo e apagou
+    expect(aplicarDigitacao(123456789, 'R$ 1.234.567,89', 'R$ 1.234.567,899')).toBe(123456789); // limite de dígitos
+    expect(aplicarDigitacao(12, 'R$ 0,12', 'R$ 0,12345')).toBe(12345); // colou vários números
   });
 
   test('texto curto para gráficos', () => {

@@ -17,6 +17,8 @@ export default function NovoLancamento() {
   async function salvar({ dados, comprovanteUri }: ResultadoFormulario): Promise<boolean> {
     const l = await banco.adicionarLancamento(dados, { comprovanteUri: comprovanteUri ?? null });
     const oQue = l.tipo === 'Entrada' ? l.categoria + (l.descricao ? ' de ' + l.descricao : '') : l.descricao;
+    // Dá um instante para o envio: assim o aviso já sabe dizer se ficou guardado só no celular.
+    await Promise.race([banco.sincronizar(), new Promise((r) => setTimeout(r, 1200))]);
     const offline = !banco.loja.getState().sinc.online;
     avisar(
       'Lançamento salvo!',
