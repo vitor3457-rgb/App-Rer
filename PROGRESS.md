@@ -14,7 +14,7 @@ e `supabase/` (SQL). Acesso: token do Supabase salvo no ambiente de nuvem "App-R
 M1.  [x] Plano, pastas `app/` e `supabase/`, CLAUDE.md atualizado.
 M2.  [x] Banco: migrações SQL (tabelas, RLS, gatilhos, view para BI, bucket de comprovantes),
          aplicar no Supabase pela Management API, testes de segurança (RLS).
-M3.  [ ] Projeto Expo (TypeScript + Expo Router), tema ADRER claro/escuro, componentes base.
+M3.  [x] Projeto Expo (TypeScript + Expo Router), tema ADRER claro/escuro, componentes base.
 M4.  [x] Núcleo em `app/src/core` com testes: dinheiro, datas, validação, totais e saldo acumulado.
 M5.  [x] Sincronização offline (cache local + fila de envio) com testes; remoto demo e remoto Supabase.
 M6.  [ ] Login com Google (Supabase Auth) + tela "não autorizado". [U: criar OAuth no Google Cloud]
@@ -33,8 +33,12 @@ M16. [U] Teste no celular, ajustes, guia novo (README), desligar login por e-mai
 - **Última etapa concluída:** M5. Banco aplicado; núcleo (`app/src/core`, 35 testes); motor offline
   (`app/src/dados/banco.ts`, 29 testes); remoto Supabase (`remotoSupabase.ts`) validado contra o
   banco real (`npm run test:integracao` em `app/`, 8 testes; cria contas temporárias e limpa tudo).
-- **Próximo passo exato:** M3/M6 — camada de plataforma (`app/src/dados/index.ts`: sessão Google,
-  AsyncStorage, rede, arquivos), tema e componentes (`app/src/ui`), rotas em `app/src/app`.
+- **Feito também:** M3 (tema, componentes em `app/src/ui`), login/rotas (`app/src/app/_layout.tsx`,
+  `login.tsx`, `sem-acesso.tsx`, abas) e M7 (formulário `ui/Formulario.tsx` + tela `(abas)/index.tsx`).
+  Modo demo: `EXPO_PUBLIC_DEMO=1 EXPO_OFFLINE=1 npx expo export -p web --output-dir dist-demo`
+  e depois `node e2e/fumaca.js` (prints em `app/e2e/prints/`).
+- **Próximo passo exato:** M8 — trocar as telas provisórias: `(abas)/lancamentos.tsx`,
+  `lancamento/[id].tsx`; depois M9 `dashboard.tsx`, M10 exportar, M11 membros, M12 `mais.tsx` e ajustes.
 - Comandos (dentro de `app/`): `npm test` · `npm run typecheck` · `npm run test:integracao`.
   Na raiz: `npm run banco:aplicar` · `npm run banco:testar`.
 - Observações técnicas:
