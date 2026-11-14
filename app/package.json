@@ -59,7 +59,8 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "test": "jest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:integracao": "NODE_USE_ENV_PROXY=1 jest --config jest.integracao.config.js --runInBand"
   },
   "private": true,
   "jest": {
@@ -67,7 +68,8 @@
     "testPathIgnorePatterns": [
       "/node_modules/",
       "/dist/",
-      "/e2e/"
+      "/e2e/",
+      "/integracao/"
     ],
     "testMatch": [
       "**/*.test.ts",

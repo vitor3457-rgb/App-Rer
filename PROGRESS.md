@@ -15,8 +15,8 @@ M1.  [x] Plano, pastas `app/` e `supabase/`, CLAUDE.md atualizado.
 M2.  [x] Banco: migrações SQL (tabelas, RLS, gatilhos, view para BI, bucket de comprovantes),
          aplicar no Supabase pela Management API, testes de segurança (RLS).
 M3.  [ ] Projeto Expo (TypeScript + Expo Router), tema ADRER claro/escuro, componentes base.
-M4.  [ ] Núcleo em `app/src/core` com testes: dinheiro, datas, validação, totais e saldo acumulado.
-M5.  [ ] Sincronização offline (cache local + fila de envio) com testes; remoto demo e remoto Supabase.
+M4.  [x] Núcleo em `app/src/core` com testes: dinheiro, datas, validação, totais e saldo acumulado.
+M5.  [x] Sincronização offline (cache local + fila de envio) com testes; remoto demo e remoto Supabase.
 M6.  [ ] Login com Google (Supabase Auth) + tela "não autorizado". [U: criar OAuth no Google Cloud]
 M7.  [ ] Tela Novo lançamento (responsável, valor, tipo, contribuinte/membro, descrição, data, foto).
 M8.  [ ] Tela Lançamentos (mês, busca e filtros, saldo anterior → saldo em caixa, excluir, detalhe/foto).
@@ -30,8 +30,19 @@ M15. [ ] Gerar o APK (EAS Build) e atualizações automáticas (EAS Update). [U:
 M16. [U] Teste no celular, ajustes, guia novo (README), desligar login por e-mail/senha, entrega.
 
 ### Estado atual da Fase 2
-- **Última etapa concluída:** M2 (banco aplicado: 0001_inicial.sql; 46 testes em `npm run banco:testar`)
-- **Próximo passo exato:** M3 — limpar o modelo do Expo em `app/`, criar tema e componentes base.
+- **Última etapa concluída:** M5. Banco aplicado; núcleo (`app/src/core`, 35 testes); motor offline
+  (`app/src/dados/banco.ts`, 29 testes); remoto Supabase (`remotoSupabase.ts`) validado contra o
+  banco real (`npm run test:integracao` em `app/`, 8 testes; cria contas temporárias e limpa tudo).
+- **Próximo passo exato:** M3/M6 — camada de plataforma (`app/src/dados/index.ts`: sessão Google,
+  AsyncStorage, rede, arquivos), tema e componentes (`app/src/ui`), rotas em `app/src/app`.
+- Comandos (dentro de `app/`): `npm test` · `npm run typecheck` · `npm run test:integracao`.
+  Na raiz: `npm run banco:aplicar` · `npm run banco:testar`.
+- Observações técnicas:
+  - `npx expo install` precisa de `EXPO_OFFLINE=1` enquanto o token do Expo salvo estiver inválido
+    (o proxy injeta o token ruim em api.expo.dev e a chamada falha).
+  - docs.expo.dev não é acessível daqui: conferir APIs do SDK 58 nos `.d.ts` de `node_modules`.
+  - O login por e-mail/senha do Supabase está ligado só por causa do teste de integração;
+    **desligar na M16** (Auth → Providers → Email) para sobrar só o Google.
 
 ### Pendências do usuário (Fase 2)
 - **Token do Expo**: o que foi salvo no formulário é recusado pelo Expo ("bearer token is invalid").
