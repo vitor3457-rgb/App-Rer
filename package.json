@@ -7,7 +7,9 @@
     "preview": "node dev/gerar-preview.js",
     "test:ui": "node dev/gerar-preview.js && node dev/testes-ui.js",
     "push": "clasp push --force",
-    "publicar": "node dev/publicar.js"
+    "publicar": "node dev/publicar.js",
+    "banco:aplicar": "NODE_USE_ENV_PROXY=1 node supabase/aplicar.mjs",
+    "banco:testar": "NODE_USE_ENV_PROXY=1 node supabase/testes-rls.mjs"
   },
   "repository": {
     "type": "git",

@@ -12,7 +12,7 @@ e `supabase/` (SQL). Acesso: token do Supabase salvo no ambiente de nuvem "App-R
 (api.supabase.com, injetado pelo proxy — usar `Authorization: Bearer proxy-injected`).
 
 M1.  [x] Plano, pastas `app/` e `supabase/`, CLAUDE.md atualizado.
-M2.  [ ] Banco: migrações SQL (tabelas, RLS, gatilhos, view para BI, bucket de comprovantes),
+M2.  [x] Banco: migrações SQL (tabelas, RLS, gatilhos, view para BI, bucket de comprovantes),
          aplicar no Supabase pela Management API, testes de segurança (RLS).
 M3.  [ ] Projeto Expo (TypeScript + Expo Router), tema ADRER claro/escuro, componentes base.
 M4.  [ ] Núcleo em `app/src/core` com testes: dinheiro, datas, validação, totais e saldo acumulado.
@@ -30,8 +30,8 @@ M15. [ ] Gerar o APK (EAS Build) e atualizações automáticas (EAS Update). [U:
 M16. [U] Teste no celular, ajustes, guia novo (README), desligar login por e-mail/senha, entrega.
 
 ### Estado atual da Fase 2
-- **Última etapa concluída:** M1
-- **Próximo passo exato:** M2 — escrever `supabase/migracoes/0001_inicial.sql` e aplicar com `supabase/aplicar.sh`.
+- **Última etapa concluída:** M2 (banco aplicado: 0001_inicial.sql; 46 testes em `npm run banco:testar`)
+- **Próximo passo exato:** M3 — limpar o modelo do Expo em `app/`, criar tema e componentes base.
 
 ### Pendências do usuário (Fase 2)
 - **Token do Expo**: o que foi salvo no formulário é recusado pelo Expo ("bearer token is invalid").
