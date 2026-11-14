@@ -2,6 +2,46 @@
 
 > Ao iniciar qualquer sessão, leia este arquivo e continue da **próxima etapa pendente**.
 > Legenda: [x] feito · [ ] pendente · [U] depende de ação do usuário
+> **Fase atual: FASE 2 (app nativo Expo + Supabase).** A Fase 1 (web app Apps Script) está
+> pronta, publicada e continua no ar até a troca — histórico dela mais abaixo.
+
+## FASE 2 — App nativo (Expo + Supabase) — aval do usuário dado em 14/11/2026
+
+Dados do projeto (URL, chave pública, decisões): **MIGRACAO.md**. Código novo em `app/` (Expo)
+e `supabase/` (SQL). Acesso: token do Supabase salvo no ambiente de nuvem "App-Rer"
+(api.supabase.com, injetado pelo proxy — usar `Authorization: Bearer proxy-injected`).
+
+M1.  [x] Plano, pastas `app/` e `supabase/`, CLAUDE.md atualizado.
+M2.  [ ] Banco: migrações SQL (tabelas, RLS, gatilhos, view para BI, bucket de comprovantes),
+         aplicar no Supabase pela Management API, testes de segurança (RLS).
+M3.  [ ] Projeto Expo (TypeScript + Expo Router), tema ADRER claro/escuro, componentes base.
+M4.  [ ] Núcleo em `app/src/core` com testes: dinheiro, datas, validação, totais e saldo acumulado.
+M5.  [ ] Sincronização offline (cache local + fila de envio) com testes; remoto demo e remoto Supabase.
+M6.  [ ] Login com Google (Supabase Auth) + tela "não autorizado". [U: criar OAuth no Google Cloud]
+M7.  [ ] Tela Novo lançamento (responsável, valor, tipo, contribuinte/membro, descrição, data, foto).
+M8.  [ ] Tela Lançamentos (mês, busca e filtros, saldo anterior → saldo em caixa, excluir, detalhe/foto).
+M9.  [ ] Dashboard (cartões, gráficos, comparar meses, saldo em caixa).
+M10. [ ] Exportar Excel e PDF (lançamentos e dashboard).
+M11. [ ] Membros/dizimistas (cadastro + histórico).
+M12. [ ] Ajustes: tema, responsáveis, usuários autorizados (admin), saldo de abertura, lembrete, sincronização.
+M13. [ ] Testes de interface (web + Playwright, modo demo) e integração real com o Supabase.
+M14. [ ] Importar os lançamentos da planilha atual.
+M15. [ ] Gerar o APK (EAS Build) e atualizações automáticas (EAS Update). [U: token do Expo válido]
+M16. [U] Teste no celular, ajustes, guia novo (README), desligar login por e-mail/senha, entrega.
+
+### Estado atual da Fase 2
+- **Última etapa concluída:** M1
+- **Próximo passo exato:** M2 — escrever `supabase/migracoes/0001_inicial.sql` e aplicar com `supabase/aplicar.sh`.
+
+### Pendências do usuário (Fase 2)
+- **Token do Expo**: o que foi salvo no formulário é recusado pelo Expo ("bearer token is invalid").
+  Pedir de novo (formulário seguro, host api.expo.dev) antes da etapa M15.
+- **Login Google**: criar o cliente OAuth no Google Cloud e colar ID/segredo no painel do Supabase (guiar na M6).
+- E-mail do tesoureiro e saldo de abertura do caixa: ficam para depois (ajustáveis dentro do app pelo admin).
+
+---
+
+# FASE 1 — Web app Google Apps Script (concluída e publicada)
 
 ## Plano (etapas pequenas e numeradas)
 
@@ -95,8 +135,3 @@ quando ele colar a URL de retorno, gravá-la em `url.txt`. Conferir com `npx cla
   saldo, quantidade) e 3 gráficos SVG feitos à mão (barras dízimos/ofertas/saídas, linha do saldo
   acumulado com toque para ver o dia, maiores despesas). PDF do dashboard: gráficos convertidos
   SVG→PNG (canvas) e colocados no jsPDF. 32 testes de servidor e 26 de interface.
-
-## Próxima fase: migração para Expo + Supabase — PREPARAÇÃO (não programar sem aval)
-- Tudo recebido está em **MIGRACAO.md** (URL/chave pública do Supabase, usuário Expo, login Google,
-  extras aprovados, importar planilha = sim, saldo acumulado entre meses).
-- Pendências do usuário: e-mail do tesoureiro; saldo de abertura do caixa; aval para começar (ele troca o modelo).

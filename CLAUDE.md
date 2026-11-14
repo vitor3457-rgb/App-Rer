@@ -5,6 +5,23 @@
 > pendências do usuário), faça commit e `git push -u origin claude/church-finance-app-h1epmv`.
 > O container da nuvem é apagado depois de um tempo: o que não foi enviado ao GitHub se perde.
 
+## FASE 2 (em andamento): app nativo Expo + Supabase
+O usuário pediu a migração para um app Android "de verdade". Leia **PROGRESS.md** (etapas M1–M16)
+e **MIGRACAO.md** (dados e decisões). Resumo da arquitetura nova:
+- `app/` — Expo (SDK 58, TypeScript, Expo Router). Lógica pura em `app/src/core` (testada com Jest),
+  dados em `app/src/dados` (cache local + fila offline; "remoto" Supabase ou demo), telas em `app/src/app`.
+- `supabase/` — migrações SQL e scripts. Aplicar com a Management API
+  (`POST https://api.supabase.com/v1/projects/nkkqbqvhuumtlywlstws/database/query`,
+  cabeçalho `Authorization: Bearer proxy-injected` — o proxy troca pelo token real).
+- Segurança: login Google (Supabase Auth) + tabela `usuarios` (lista de e-mails e papéis) + RLS.
+- Dinheiro sempre em **centavos inteiros**; datas de referência como texto `AAAA-MM-DD`.
+- Offline: todo lançamento nasce no celular com UUID próprio, entra na fila e é enviado por upsert (não duplica).
+- Saldo acumulado: saldo inicial do mês = saldo de abertura + tudo o que veio antes.
+- Não dá para rodar Android aqui: testar pela versão web (`expo export -p web` + Playwright, modo demo)
+  e pedir ao usuário o teste no celular com o APK (EAS Build).
+- **Nunca** pedir senha/chave secreta no chat: usar o formulário seguro (request_credential).
+- A Fase 1 (abaixo) continua publicada até a troca; não quebrar `src/` nem `dev/`.
+
 ## Resumo do projeto
 App de controle financeiro para uma igreja pequena (até 100 membros), usado por
 2 pessoas (o dono do projeto e o tesoureiro), cada uma no próprio celular Android.
