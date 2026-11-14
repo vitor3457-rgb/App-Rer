@@ -43,3 +43,4 @@ example
 /android
 dist-demo/
 e2e/prints/
+dist-android/
