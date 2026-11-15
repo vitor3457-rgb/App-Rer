@@ -208,6 +208,26 @@ export function maisUsados(textos: string[]): string[] {
     .map((c) => c.texto);
 }
 
+/**
+ * Nomes sugeridos no campo "quem contribuiu": SÓ quem está no cadastro e ativo
+ * (excluir ou desativar alguém tira o nome das sugestões), os que mais contribuem primeiro.
+ */
+export function sugestoesDeContribuintes(lancamentos: Iterable<Lancamento>, membros: Iterable<Membro>): string[] {
+  const ativos = Array.from(membros).filter((m) => m.ativo && !m.excluidoEm);
+  const porId = new Map<string, number>();
+  const porNome = new Map<string, number>();
+  for (const l of lancamentos) {
+    if (l.excluidoEm || l.tipo !== 'Entrada') continue;
+    if (l.membroId) porId.set(l.membroId, (porId.get(l.membroId) ?? 0) + 1);
+    else if (l.descricao) porNome.set(normalizar(l.descricao), (porNome.get(normalizar(l.descricao)) ?? 0) + 1);
+  }
+  const usos = (m: Membro) => (porId.get(m.id) ?? 0) + (porNome.get(normalizar(m.nome)) ?? 0);
+  return ativos
+    .map((m) => ({ nome: m.nome, n: usos(m) }))
+    .sort((a, b) => b.n - a.n || a.nome.localeCompare(b.nome, 'pt-BR'))
+    .map((x) => x.nome);
+}
+
 export interface HistoricoMembro {
   itens: Lancamento[];
   totalCentavos: number;

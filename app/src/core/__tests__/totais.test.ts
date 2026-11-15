@@ -1,6 +1,6 @@
 import {
   agruparPorMes, calcularCaixa, despesasPrincipais, filtrar, historicoDoMembro, maisUsados, ordenarRecentes,
-  serieDiaria, totalizar,
+  serieDiaria, sugestoesDeContribuintes, totalizar,
 } from '../totais';
 import { lanc, membro, saida } from './fabrica';
 
@@ -137,6 +137,23 @@ test('despesasPrincipais agrupa por descrição e junta o resto em "Outras"', ()
 
 test('maisUsados ordena pela frequência, sem diferenciar acento/maiúscula', () => {
   expect(maisUsados(['Gás', 'Aluguel', 'gas', 'Pintura', 'GÁS', 'aluguel', ''])).toEqual(['Gás', 'Aluguel', 'Pintura']);
+});
+
+test('sugestões de contribuintes: só quem está no cadastro e ativo, os mais frequentes primeiro', () => {
+  const silvana = membro('Silvana');
+  const ana = membro('Ana');
+  const inativo = membro('Zé Inativo', { ativo: false });
+  const excluido = membro('Igreja', { excluidoEm: '2026-11-15T00:00:00Z' });
+  const lista = [
+    lanc({ membroId: ana.id, descricao: 'Ana' }), lanc({ membroId: ana.id, descricao: 'Ana' }),
+    lanc({ membroId: silvana.id }), lanc({ membroId: null, descricao: 'silvana' }), lanc({ membroId: silvana.id }),
+    lanc({ membroId: excluido.id, descricao: 'Igreja' }), lanc({ membroId: excluido.id, descricao: 'Igreja' }),
+    lanc({ membroId: excluido.id, descricao: 'Igreja' }), lanc({ membroId: excluido.id, descricao: 'Igreja' }),
+    lanc({ membroId: null, descricao: 'Nome Antigo Sem Cadastro' }),
+    lanc({ membroId: inativo.id, descricao: 'Zé Inativo' }),
+  ];
+  expect(sugestoesDeContribuintes(lista, [ana, inativo, excluido, silvana, membro('Bia')])).toEqual(['Silvana', 'Ana', 'Bia']);
+  expect(sugestoesDeContribuintes(lista, [])).toEqual([]);
 });
 
 test('historicoDoMembro: pelo cadastro e, nos antigos, pelo mesmo nome', () => {

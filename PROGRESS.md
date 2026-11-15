@@ -186,3 +186,4 @@ quando ele colar a URL de retorno, gravá-la em `url.txt`. Conferir com `npx cla
   saldo, quantidade) e 3 gráficos SVG feitos à mão (barras dízimos/ofertas/saídas, linha do saldo
   acumulado com toque para ver o dia, maiores despesas). PDF do dashboard: gráficos convertidos
   SVG→PNG (canvas) e colocados no jsPDF. 32 testes de servidor e 26 de interface.
+- 15/11: sugestões de "quem contribuiu" passam a vir só do cadastro de membros ativos (excluir/desativar tira da lista). Enviado por eas update.

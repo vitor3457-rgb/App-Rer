@@ -9,7 +9,7 @@ import { hojeISO, somarDias } from '@/core/datas';
 import { aplicarDigitacao, formatarReais } from '@/core/dinheiro';
 import { semRepetir, sugerir } from '@/core/texto';
 import { Lancamento } from '@/core/tipos';
-import { maisUsados } from '@/core/totais';
+import { maisUsados, sugestoesDeContribuintes } from '@/core/totais';
 import { Campo, DATA_MINIMA, DIAS_NO_FUTURO, DadosValidados, Formulario, validarLancamento } from '@/core/validacao';
 import { useBanco, useResponsaveisAtivos } from '@/dados/hooks';
 
@@ -72,10 +72,7 @@ export function FormularioLancamento({
     const todos = Object.values(lancamentos);
     return {
       despesas: semRepetir(SUGESTOES_DESPESA, maisUsados(todos.filter((l) => l.tipo === 'Saída').map((l) => l.descricao))),
-      nomes: semRepetir(
-        maisUsados(todos.filter((l) => l.tipo === 'Entrada').map((l) => l.descricao)),
-        Object.values(membros).filter((m) => m.ativo).map((m) => m.nome).sort((a, b) => a.localeCompare(b, 'pt-BR')),
-      ),
+      nomes: sugestoesDeContribuintes(todos, Object.values(membros)),
     };
   }, [lancamentos, membros]);
 
