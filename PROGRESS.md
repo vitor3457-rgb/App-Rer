@@ -52,7 +52,7 @@ M16. [U] Teste no celular, ajustes, guia novo (README), desligar login por e-mai
   https://expo.dev/artifacts/eas/h6cfqYylHrLJj8vBLUw2x4JERQjeoP7DVVvS4lOgpSw.apk (link vale até 28/11/2026).
   Comandos (em `app/`, com `EXPO_TOKEN=proxy-injected NODE_USE_ENV_PROXY=1`):
   - APK novo (só quando mudar algo nativo/versão): `npx eas-cli build -p android --profile producao --non-interactive --no-wait`
-  - Atualização sem reinstalar (mudanças só de telas/lógica): `npx eas-cli update --channel producao --message "..." --non-interactive`
+  - Atualização sem reinstalar (mudanças só de telas/lógica): `npx eas-cli update --channel producao --environment preview --message "..." --non-interactive`
 - **M16 em andamento (14/11/2026):** usuário criou o cliente OAuth (Google Cloud em modo "Testando",
   com vitor3457@gmail.com como usuário de teste) e ligou o Google no Supabase. Instalou o APK e
   confirmou no celular: login Google, lançar, modo offline ("a enviar" → "Sincronizado"), lista, modo escuro.
