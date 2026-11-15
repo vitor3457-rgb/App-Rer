@@ -11,7 +11,7 @@ const dados = [
   saida('Aluguel', 80000, { dataReferencia: '2026-10-10' }),
   lanc({ dataReferencia: '2026-11-08', valorCentavos: 5000, descricao: 'Silvana', criadoEm: '2026-11-08T15:30:00.000Z' }),
   lanc({ dataReferencia: '2026-11-01', categoria: 'Oferta', descricao: '', valorCentavos: 2050 }),
-  saida('Luz <b>&', 12735, { dataReferencia: '2026-11-03', comprovante: '2026/11/x.jpg', responsavel: 'Júlio' }),
+  saida('Luz <b>&', 12735, { dataReferencia: '2026-11-03', comprovante: '2026/11/x.jpg', responsavel: 'Júlio', formaPagamento: 'PIX', observacao: 'Pago no vencimento' }),
 ];
 const porMes = agruparPorMes(dados);
 const caixa = calcularCaixa(porMes, 0);
@@ -33,7 +33,7 @@ test('Excel: colunas, tipos de dado, ordem e aba de resumo com o caixa', () => {
   expect(linhas.slice(1).map((l) => l[7])).toEqual(['', 'Luz <b>&', 'Silvana']); // do mais antigo para o mais novo
   expect(aba.C2.t).toBe('n');
   expect(XLSX.SSF.format(aba.C2.z, aba.C2.v)).toBe('01/11/2026');
-  expect(linhas[2].slice(3, 12)).toEqual([2026, 11, 'Saída', 'Despesa', 'Luz <b>&', 127.35, 'dono@gmail.com', 'Júlio', 'Sim']);
+  expect(linhas[2].slice(3, 14)).toEqual([2026, 11, 'Saída', 'Despesa', 'Luz <b>&', 127.35, 'dono@gmail.com', 'Júlio', 'Sim', 'PIX', 'Pago no vencimento']);
   const r = XLSX.utils.sheet_to_json<any[]>(livro.Sheets.Resumo, { header: 1, raw: true });
   expect(r[0][0]).toBe('ADRER - Assembleia de Deus Rocha Eterna dos Remidos');
   expect(r[3]).toEqual(['Saldo anterior', 200]);

@@ -64,6 +64,8 @@ function paraLancamento(l: any): Lancamento {
     atualizadoEm: l.atualizado_em,
     excluidoEm: l.excluido_em ?? null,
     excluidoPor: l.excluido_por ?? null,
+    formaPagamento: l.forma_pagamento ?? '',
+    observacao: l.observacao ?? '',
   };
 }
 

@@ -31,7 +31,7 @@ function dataExcel(ano: number, mes: number, dia: number, hora = 0, minuto = 0, 
 
 export const COLUNAS_EXCEL = [
   'ID', 'Data/hora do lançamento', 'Data de referência', 'Ano', 'Mês', 'Tipo', 'Categoria',
-  'Descrição', 'Valor', 'Usuário', 'Responsável', 'Tem foto',
+  'Descrição', 'Valor', 'Usuário', 'Responsável', 'Tem foto', 'Forma de pagamento', 'Observação',
 ];
 
 /** Monta a planilha do mês (aba "Lançamentos" + aba "Resumo") e devolve o arquivo em base64. */
@@ -46,7 +46,7 @@ export function gerarExcel(itens: Lancamento[], resumo: ResumoMes, cab: Cabecalh
       dataExcel(ano, mes, dia),
       ano, mes, l.tipo, l.categoria, l.descricao,
       l.valorCentavos / 100,
-      l.usuarioEmail, l.responsavel, l.comprovante ? 'Sim' : '',
+      l.usuarioEmail, l.responsavel, l.comprovante ? 'Sim' : '', l.formaPagamento ?? '', l.observacao ?? '',
     ]);
   }
   const aba = XLSX.utils.aoa_to_sheet(linhas);
@@ -59,7 +59,7 @@ export function gerarExcel(itens: Lancamento[], resumo: ResumoMes, cab: Cabecalh
     formato(i, 2, 'dd/mm/yyyy');
     formato(i, 8, '#,##0.00');
   }
-  aba['!cols'] = [38, 20, 14, 6, 5, 9, 10, 32, 12, 28, 13, 9].map((wch) => ({ wch }));
+  aba['!cols'] = [38, 20, 14, 6, 5, 9, 10, 32, 12, 28, 13, 9, 18, 40].map((wch) => ({ wch }));
   aba['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: linhas.length - 1, c: COLUNAS_EXCEL.length - 1 } }) };
 
   const abaResumo = XLSX.utils.aoa_to_sheet([

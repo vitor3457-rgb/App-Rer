@@ -27,6 +27,10 @@ export interface Lancamento {
   atualizadoEm: string;
   excluidoEm: string | null;
   excluidoPor: string | null;
+  /** 'PIX', 'Dinheiro'... (vazio = não informado). Veio do app antigo (AppSheet). */
+  formaPagamento?: string;
+  /** Anotação livre do lançamento (ex.: "Retirado da salva"). */
+  observacao?: string;
   /** Só no celular: ainda não chegou ao servidor. */
   pendente?: boolean;
   /** Só no celular: foto ainda não enviada (endereço local do arquivo). */

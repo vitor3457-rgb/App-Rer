@@ -1,6 +1,7 @@
 // Testes de segurança e de regras do banco (RLS, gatilhos e restrições).
 // Cada teste roda dentro de um bloco que SEMPRE termina em erro proposital,
 // então o Postgres desfaz tudo: nada fica gravado no banco de verdade.
+// Os testes não dependem do que já existe no banco (contam só as linhas que eles mesmos criam).
 // Rodar: npm run banco:testar
 import { sql } from './api.mjs';
 
@@ -88,13 +89,13 @@ const testes = [
   ['usuário desativado não grava', INATIVO, EXECUTAR(INSERIR_LANC()), NEGADO],
 
   // ---- leitor: só vê ----
-  ['leitor vê os lançamentos', LEITOR, CONTAR('select 1 from public.lancamentos'), '2'],
+  ['leitor vê os lançamentos', LEITOR, CONTAR(`select 1 from public.lancamentos where id in ('${L1}', '${L2}')`), '2'],
   ['leitor não insere', LEITOR, EXECUTAR(INSERIR_LANC()), NEGADO],
   ['leitor não exclui', LEITOR, EXECUTAR(`update public.lancamentos set excluido_em = now() where id = '${L1}'`), '0'],
   ['leitor vê só a própria linha em usuários', LEITOR, CONTAR('select 1 from public.usuarios'), '1'],
 
   // ---- tesoureiro: lança e exclui, mas não administra ----
-  ['tesoureiro vê os lançamentos', TES, CONTAR('select 1 from public.lancamentos'), '2'],
+  ['tesoureiro vê os lançamentos', TES, CONTAR(`select 1 from public.lancamentos where id in ('${L1}', '${L2}')`), '2'],
   ['tesoureiro insere lançamento', TES, EXECUTAR(INSERIR_LANC()), '1'],
   ['conta do lançamento vem do login (não do que o app mandou)', TES,
     VALOR(`select usuario_email from public.lancamentos where id = '${NOVO}'`, INSERIR_LANC() + ';'), TES],
@@ -107,7 +108,7 @@ const testes = [
     VALOR(`select excluido_por || '|' || (excluido_em is not null)::text from public.lancamentos where id = '${L1}'`,
       `update public.lancamentos set excluido_em = '2020-01-01' where id = '${L1}';`), TES + '|true'],
   ['excluído some da visão do dashboard', TES,
-    CONTAR('select 1 from public.vw_lancamentos').replace('select count', `update public.lancamentos set excluido_em = now() where id = '${L1}'; select count`), '1'],
+    CONTAR(`select 1 from public.vw_lancamentos where id in ('${L1}', '${L2}')`).replace('select count', `update public.lancamentos set excluido_em = now() where id = '${L1}'; select count`), '1'],
   ['não dá para trocar a conta que lançou', TES,
     VALOR(`select usuario_email from public.lancamentos where id = '${L1}'`,
       `update public.lancamentos set usuario_email = 'x@y.com' where id = '${L1}';`), ADMIN],
@@ -122,7 +123,7 @@ const testes = [
   ['tesoureiro não apaga linha de verdade (sem DELETE)', TES, EXECUTAR(`delete from public.lancamentos where id = '${L1}'`), NEGADO],
 
   // ---- admin ----
-  ['admin vê todos os usuários', ADMIN, CONTAR('select 1 from public.usuarios'), '4'],
+  ['admin vê todos os usuários', ADMIN, CONTAR(`select 1 from public.usuarios where email in ('${ADMIN}', '${TES}', '${LEITOR}', '${INATIVO}')`), '4'],
   ['admin inclui usuário', ADMIN, EXECUTAR(`insert into public.usuarios (email, nome, papel) values ('novo@gmail.com', 'Novo', 'tesoureiro')`), '1'],
   ['admin muda o saldo de abertura', ADMIN, EXECUTAR(`update public.configuracoes set valor = '150000'::jsonb where chave = 'saldo_abertura_centavos'`), '1'],
   ['admin cria responsável', ADMIN, EXECUTAR(`insert into public.responsaveis (nome) values ('Pedro')`), '1'],

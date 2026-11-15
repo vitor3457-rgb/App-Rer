@@ -58,13 +58,21 @@ M16. [U] Teste no celular, ajustes, guia novo (README), desligar login por e-mai
   confirmou no celular: login Google, lançar, modo offline ("a enviar" → "Sincronizado"), lista, modo escuro.
   Login por e-mail/senha DESLIGADO no Supabase (para rodar `npm run test:integracao`, religar
   `external_email_enabled` temporariamente pela Management API e desligar de novo).
+- **15/11/2026 — DADOS VERDADEIROS:** o usuário mandou o banco do app antigo de verdade (AppSheet, .xlsx)
+  e mandou apagar tudo o que havia no app novo (eram testes, inclusive os 7 da planilha do Apps Script).
+  Feito com `supabase/importar-appsheet.mjs <arquivo> --aplicar`: 122 lançamentos (mai–out/2026) e
+  23 membros; os 13 de teste ficaram marcados como excluídos. Caixa no fim de out/2026: R$ 17.036,54.
+  Migração `0002` criou as colunas `forma_pagamento` e `observacao` (vindas do AppSheet); o app mostra
+  as duas no detalhe e no Excel, mas o FORMULÁRIO ainda não tem esses campos (perguntado ao usuário).
+  **NÃO rodar mais `importar-planilha.mjs`** (a planilha do Apps Script só tinha testes).
+  O arquivo do AppSheet tem nomes de pessoas: não commitar.
 - **Próximo passo exato:**
-  1. Usuário responder se quer o redesenho (tela inicial de resumo + botão "+", menu flutuante,
-     lista por dia, gráficos novos, animações). Se sim: implementar e enviar por `eas update`.
-  2. Quando vier o e-mail do tesoureiro: incluir em Google Cloud → Público-alvo → Usuários de teste
-     (o usuário faz) e em Mais → Usuários no app (o usuário faz).
-  3. No dia da troca: rodar `supabase/importar-planilha.mjs --aplicar` de novo, escrever o guia novo
-     no README, avisar para parar de usar o app antigo.
+  1. Usuário responder: (a) quer os campos Forma de pagamento e Observação no formulário?
+     (b) quer o redesenho (tela inicial de resumo + botão "+", menu flutuante, lista por dia,
+     gráficos novos, animações)? (c) há saldo de abertura antes de maio/2026?
+  2. Quando vier o e-mail do tesoureiro: Google Cloud → Público-alvo → Usuários de teste e
+     Mais → Usuários no app (o usuário faz os dois).
+  3. Escrever o guia novo no README e aposentar o app do Apps Script.
   4. Opcional: página de política de privacidade para publicar o OAuth (acaba com o relogin a cada 7 dias).
 - Nos testes de tela, as abas ficam montadas uma sob a outra (z-index): escopar seletores por tela.
 - Comandos (dentro de `app/`): `npm test` · `npm run typecheck` · `npm run test:integracao`.

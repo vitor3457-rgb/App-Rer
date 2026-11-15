@@ -89,10 +89,18 @@ export default function DetalheLancamento() {
               <LinhaValor rotulo="Data" valor={dataPorExtenso(l.dataReferencia)} />
               <LinhaValor rotulo="Categoria" valor={l.categoria} />
               <LinhaValor rotulo={entrada ? 'Quem contribuiu' : 'Descrição'} valor={l.descricao || '—'} />
+              {l.formaPagamento ? <LinhaValor rotulo="Forma de pagamento" valor={l.formaPagamento} /> : null}
               <LinhaValor rotulo="Responsável" valor={l.responsavel} />
               <LinhaValor rotulo="Conta usada" valor={l.usuarioEmail || '—'} />
               <LinhaValor rotulo="Lançado em" valor={dataHoraBR(l.criadoEm)} />
             </Cartao>
+
+            {l.observacao ? (
+              <Cartao style={{ gap: 4 }} testID="detalhe-observacao">
+                <Texto tipo="rotulo" suave>OBSERVAÇÃO</Texto>
+                <Texto>{l.observacao}</Texto>
+              </Cartao>
+            ) : null}
 
             {foto.estado !== 'nada' ? (
               <Cartao style={{ gap: ESPACO.m }}>
