@@ -38,11 +38,12 @@ export function criarDemo() {
   });
   const responsaveis = ['Alex', 'Júlio', 'Lázaro'];
 
-  function gravar(l: Omit<LancamentoEnvio, 'id' | 'criadoEm' | 'comprovante' | 'responsavel'>) {
+  function gravar(l: Omit<LancamentoEnvio, 'id' | 'criadoEm' | 'comprovante' | 'responsavel' | 'formaPagamento' | 'observacao'>) {
     const id = uuid(++n);
     const carimbo = servidor.carimbo();
     servidor.lancamentos.set(id, {
       ...l, id, comprovante: null, responsavel: responsaveis[n % 3], usuarioEmail: CONTA_DEMO.email,
+      formaPagamento: l.tipo === 'Entrada' ? (n % 2 ? 'PIX' : 'Dinheiro') : '', observacao: '',
       criadoEm: carimbo, atualizadoEm: carimbo, excluidoEm: null, excluidoPor: null,
     });
   }

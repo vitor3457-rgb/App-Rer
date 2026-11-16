@@ -34,6 +34,8 @@ export interface LancamentoEnvio {
   responsavel: string;
   comprovante: string | null;
   criadoEm: string;
+  formaPagamento: string;
+  observacao: string;
 }
 
 export interface MembroEnvio {

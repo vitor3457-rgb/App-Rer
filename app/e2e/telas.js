@@ -110,6 +110,10 @@ function reais(texto) {
     await p.click(t('categoria-dizimo'));
     await p.click(t('salvar'));
     assert.match(await texto(p, 'erro-form'), /nome de quem deu o dízimo/);
+    await p.fill(t('contribuinte'), 'Fulano');
+    await p.click(t('salvar'));
+    assert.match(await texto(p, 'erro-form'), /forma de pagamento: Dinheiro ou PIX/);
+    await p.fill(t('contribuinte'), '');
     await print(p, '02-validacao');
   });
 
@@ -133,6 +137,8 @@ function reais(texto) {
 
   await passo('salva o dízimo, avisa, limpa o formulário e envia ao servidor', async () => {
     await p.click(t('responsavel-Lázaro'));
+    await p.click(t('forma-pix'));
+    await p.fill(t('observacao'), 'Retirado da salva');
     await p.click(t('salvar'));
     const msg = await aviso(p);
     assert.match(msg, /Lançamento salvo!/);
@@ -144,6 +150,7 @@ function reais(texto) {
     const novo = (await linhasServidor(p)).find((l) => l.descricao === 'Novo Irmão');
     assert.deepStrictEqual([novo.tipo, novo.categoria, novo.valorCentavos, novo.responsavel, novo.dataReferencia], ['Entrada', 'Dízimo', 5000, 'Lázaro', '2026-11-14']);
     assert.ok(novo.membroId, 'virou cadastro de membro');
+    assert.deepStrictEqual([novo.formaPagamento, novo.observacao], ['PIX', 'Retirado da salva']);
   });
 
   await passo('saída: exige descrição, usa sugestão e troca a data pelo calendário', async () => {
@@ -170,6 +177,7 @@ function reais(texto) {
     await p.keyboard.type('2500');
     await p.click(t('tipo-entrada'));
     await p.click(t('categoria-oferta'));
+    await p.click(t('forma-dinheiro'));
     await p.click(t('salvar'));
     assert.match(await aviso(p), /Sem internet agora: será enviado quando a conexão voltar/);
     await p.waitForFunction(() => /Sem internet · 1 a enviar/.test(document.querySelector('[data-testid="chip-sinc"]').innerText), null, { timeout: 8000 })
@@ -284,6 +292,8 @@ function reais(texto) {
     await p.waitForSelector(t('tela-detalhe'));
     assert.match(await texto(p, 'detalhe-valor'), /\+ R\$ 50,00/);
     assert.match(await texto(p, 'detalhe-titulo'), /Dízimo · Novo Irmão/);
+    assert.match(await texto(p, 'tela-detalhe'), /Forma de pagamento\s*PIX/);
+    assert.match(await texto(p, 'detalhe-observacao'), /Retirado da salva/);
     await print(p, '08-detalhe');
     await p.click(t('detalhe-alterar'));
     assert.strictEqual(await p.inputValue(t('valor')), 'R$ 50,00');

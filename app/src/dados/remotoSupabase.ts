@@ -164,6 +164,8 @@ export function criarRemotoSupabase(supabase: SupabaseClient, opcoes: OpcoesRemo
         responsavel: l.responsavel,
         comprovante: l.comprovante,
         criado_em: l.criadoEm,
+        forma_pagamento: l.formaPagamento,
+        observacao: l.observacao,
       }, { onConflict: 'id' }));
     },
 

@@ -187,3 +187,11 @@ quando ele colar a URL de retorno, gravá-la em `url.txt`. Conferir com `npx cla
   acumulado com toque para ver o dia, maiores despesas). PDF do dashboard: gráficos convertidos
   SVG→PNG (canvas) e colocados no jsPDF. 32 testes de servidor e 26 de interface.
 - 15/11: sugestões de "quem contribuiu" passam a vir só do cadastro de membros ativos (excluir/desativar tira da lista). Enviado por eas update.
+- 16/11: formulário ganhou **Forma de pagamento** (Dinheiro/PIX, obrigatória nas entradas) e **Observação**
+  (opcional, entradas e saídas). Enviado por eas update. Saldo de abertura fica R$ 0,00 (o usuário vai ver
+  com o financeiro). **O APP JÁ ESTÁ EM USO REAL:** além dos 122 do AppSheet há lançamentos feitos pelo
+  dono e pelo tesoureiro (alexsilvestre02@gmail.com, incluído pelo dono como admin). Cuidado com o banco:
+  nada de limpeza em massa; `importar-appsheet.mjs` não apaga mais nada (só com `--apagar-o-resto`, NÃO usar).
+  Testes de integração criam e apagam só as próprias linhas (conferido).
+- Pendente: usuário não entendeu a proposta de design novo → explicar com uma prévia em imagem antes de mexer.
+

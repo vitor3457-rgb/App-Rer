@@ -5,7 +5,7 @@ const ctx = { responsaveis: ['Alex', 'Júlio', 'Lázaro'], hoje: '2026-11-08' };
 function form(extra: Partial<Formulario> = {}): Formulario {
   return {
     responsavel: 'Alex', valorCentavos: 5000, tipo: 'Entrada', categoria: 'Dízimo',
-    descricao: '', contribuinte: 'Silvana', dataReferencia: '2026-11-08', ...extra,
+    descricao: '', contribuinte: 'Silvana', formaPagamento: 'PIX', observacao: '', dataReferencia: '2026-11-08', ...extra,
   };
 }
 
@@ -22,14 +22,14 @@ describe('validarLancamento', () => {
       ok: true,
       dados: {
         responsavel: 'Alex', valorCentavos: 5000, tipo: 'Entrada', categoria: 'Dízimo',
-        descricao: 'Silvana Souza', dataReferencia: '2026-11-08',
+        descricao: 'Silvana Souza', formaPagamento: 'PIX', observacao: '', dataReferencia: '2026-11-08',
       },
     });
   });
 
   test('saída válida: categoria vira Despesa e o nome do contribuinte é ignorado', () => {
     const r = validarLancamento(form({ tipo: 'Saída', categoria: '', descricao: ' Conta  de luz ', contribuinte: 'x' }), ctx);
-    expect(r.ok && r.dados).toMatchObject({ tipo: 'Saída', categoria: 'Despesa', descricao: 'Conta de luz' });
+    expect(r.ok && r.dados).toMatchObject({ tipo: 'Saída', categoria: 'Despesa', descricao: 'Conta de luz', formaPagamento: '' });
   });
 
   test('responsável: aceita sem acento e devolve o nome da lista', () => {
@@ -58,6 +58,20 @@ describe('validarLancamento', () => {
     expect(erro({ contribuinte: '   ' })).toMatchObject({ campo: 'contribuinte', erro: 'Escreva o nome de quem deu o dízimo.' });
     const r = validarLancamento(form({ categoria: 'Oferta', contribuinte: '' }), ctx);
     expect(r.ok && r.dados.descricao).toBe('');
+  });
+
+  test('forma de pagamento: obrigatória na entrada (Dinheiro ou PIX); a saída não tem', () => {
+    expect(erro({ formaPagamento: '' })).toMatchObject({ campo: 'forma', erro: 'Escolha a forma de pagamento: Dinheiro ou PIX.' });
+    expect(erro({ formaPagamento: 'Cheque' }).campo).toBe('forma');
+    const r = validarLancamento(form({ formaPagamento: 'dinheiro' }), ctx);
+    expect(r.ok && r.dados.formaPagamento).toBe('Dinheiro');
+    expect(validarLancamento(form({ tipo: 'Saída', descricao: 'Luz', formaPagamento: '' }), ctx).ok).toBe(true);
+  });
+
+  test('observação é opcional, é limpa e tem limite', () => {
+    const r = validarLancamento(form({ observacao: '  Retirado   da salva ' }), ctx);
+    expect(r.ok && r.dados.observacao).toBe('Retirado da salva');
+    expect(erro({ observacao: 'x'.repeat(501) })).toMatchObject({ campo: 'observacao' });
   });
 
   test('descrição da despesa é obrigatória e tem limite', () => {

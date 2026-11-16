@@ -36,10 +36,10 @@ async function celular(servidor: ServidorMemoria, email = DONO, armazenamento: A
 }
 
 function dizimo(extra: Partial<DadosValidados> = {}): DadosValidados {
-  return { responsavel: 'Alex', valorCentavos: 5000, tipo: 'Entrada', categoria: 'Dízimo', descricao: 'Silvana', dataReferencia: '2026-11-08', ...extra };
+  return { responsavel: 'Alex', valorCentavos: 5000, tipo: 'Entrada', categoria: 'Dízimo', descricao: 'Silvana', formaPagamento: 'PIX', observacao: '', dataReferencia: '2026-11-08', ...extra };
 }
 function despesa(descricao: string, valorCentavos: number, extra: Partial<DadosValidados> = {}): DadosValidados {
-  return { responsavel: 'Alex', valorCentavos, tipo: 'Saída', categoria: 'Despesa', descricao, dataReferencia: '2026-11-08', ...extra };
+  return { responsavel: 'Alex', valorCentavos, tipo: 'Saída', categoria: 'Despesa', descricao, formaPagamento: '', observacao: '', dataReferencia: '2026-11-08', ...extra };
 }
 const validos = (s: ServidorMemoria) => Array.from(s.lancamentos.values()).filter((l) => !l.excluidoEm);
 
@@ -51,7 +51,7 @@ describe('lançar e sincronizar', () => {
     expect(c.estado().lancamentos[l.id]).toMatchObject({ valorCentavos: 5000, pendente: true });
     await c.banco.sincronizar();
     expect(validos(s)).toHaveLength(1);
-    expect(s.lancamentos.get(l.id)).toMatchObject({ usuarioEmail: DONO, descricao: 'Silvana', responsavel: 'Alex' });
+    expect(s.lancamentos.get(l.id)).toMatchObject({ usuarioEmail: DONO, descricao: 'Silvana', responsavel: 'Alex', formaPagamento: 'PIX', observacao: '' });
     expect(c.estado().fila).toEqual([]);
     expect(c.estado().lancamentos[l.id].pendente).toBeFalsy();
     expect(c.estado().sinc).toMatchObject({ online: true, erro: null, andamento: false });

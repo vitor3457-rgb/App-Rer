@@ -284,6 +284,8 @@ export function criarBanco(dep: Dependencias) {
       membroId,
       valorCentavos: dados.valorCentavos,
       responsavel: dados.responsavel,
+      formaPagamento: dados.formaPagamento,
+      observacao: dados.observacao,
       comprovante: caminho,
       usuarioEmail: e.usuario?.email ?? e.dono ?? '',
       criadoEm: carimbo,
@@ -332,6 +334,8 @@ export function criarBanco(dep: Dependencias) {
       membroId,
       valorCentavos: dados.valorCentavos,
       responsavel: dados.responsavel,
+      formaPagamento: dados.formaPagamento,
+      observacao: dados.observacao,
       comprovante,
       comprovanteLocal,
       pendente: true,
@@ -506,6 +510,7 @@ export function criarBanco(dep: Dependencias) {
           id: l.id, dataReferencia: l.dataReferencia, tipo: l.tipo, categoria: l.categoria, descricao: l.descricao,
           membroId: l.membroId, valorCentavos: l.valorCentavos, responsavel: l.responsavel,
           comprovante: l.comprovante, criadoEm: l.criadoEm,
+          formaPagamento: l.formaPagamento ?? '', observacao: l.observacao ?? '',
         });
         return;
       }

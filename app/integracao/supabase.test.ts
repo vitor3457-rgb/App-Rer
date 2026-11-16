@@ -68,6 +68,7 @@ function envio(extra: Partial<LancamentoEnvio> = {}): LancamentoEnvio {
   return {
     id: randomUUID(), dataReferencia: '2026-11-08', tipo: 'Entrada', categoria: 'Oferta', descricao: '',
     membroId: null, valorCentavos: 1234, responsavel: 'Alex', comprovante: null, criadoEm: new Date().toISOString(),
+    formaPagamento: 'Dinheiro', observacao: 'teste de integração',
     ...extra,
   };
 }
@@ -193,7 +194,7 @@ describe('conta autorizada (tesoureiro)', () => {
     expect(a.loja.getState().usuario?.papel).toBe('tesoureiro');
     expect(a.loja.getState().sinc.erro).toBeNull();
 
-    const dados: DadosValidados = { responsavel: 'Alex', valorCentavos: 7700, tipo: 'Entrada', categoria: 'Dízimo', descricao: 'Fulano ' + SUFIXO, dataReferencia: '2026-11-09' };
+    const dados: DadosValidados = { responsavel: 'Alex', valorCentavos: 7700, tipo: 'Entrada', categoria: 'Dízimo', descricao: 'Fulano ' + SUFIXO, formaPagamento: 'PIX', observacao: 'Retirado da salva', dataReferencia: '2026-11-09' };
     const l = await a.adicionarLancamento(dados);
     await a.sincronizar();
     expect(a.loja.getState().fila).toEqual([]);
@@ -201,7 +202,7 @@ describe('conta autorizada (tesoureiro)', () => {
     expect(a.loja.getState().lancamentos[l.id].pendente).toBeFalsy();
 
     await b.sincronizar();
-    expect(b.loja.getState().lancamentos[l.id]).toMatchObject({ valorCentavos: 7700, descricao: 'Fulano ' + SUFIXO, usuarioEmail: EMAIL_TES });
+    expect(b.loja.getState().lancamentos[l.id]).toMatchObject({ valorCentavos: 7700, descricao: 'Fulano ' + SUFIXO, usuarioEmail: EMAIL_TES, formaPagamento: 'PIX', observacao: 'Retirado da salva' });
     expect(Object.values(b.loja.getState().membros).some((m) => m.nome === 'Fulano ' + SUFIXO)).toBe(true);
 
     await b.excluirLancamento(l.id);

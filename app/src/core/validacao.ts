@@ -8,7 +8,10 @@ export const DATA_MINIMA = '2020-01-01';
 /** Evita datas digitadas errado muito à frente (ex.: 2062). */
 export const DIAS_NO_FUTURO = 60;
 
-export type Campo = 'responsavel' | 'valor' | 'tipo' | 'categoria' | 'descricao' | 'contribuinte' | 'data';
+export type Campo = 'responsavel' | 'valor' | 'tipo' | 'categoria' | 'descricao' | 'contribuinte' | 'forma' | 'observacao' | 'data';
+
+export const FORMAS_PAGAMENTO = ['Dinheiro', 'PIX'] as const;
+export const TAMANHO_MAXIMO_OBSERVACAO = 500;
 
 export interface Formulario {
   responsavel: string;
@@ -19,6 +22,10 @@ export interface Formulario {
   descricao: string;
   /** Entrada: nome de quem contribuiu. */
   contribuinte: string;
+  /** Entrada: 'Dinheiro' ou 'PIX'. */
+  formaPagamento: string;
+  /** Anotação livre (opcional). */
+  observacao: string;
   dataReferencia: string;
 }
 
@@ -29,6 +36,9 @@ export interface DadosValidados {
   categoria: Categoria;
   /** Já no formato do banco: despesa (Saída) ou nome de quem contribuiu (Entrada). */
   descricao: string;
+  /** 'Dinheiro' ou 'PIX' nas entradas; vazio nas saídas. */
+  formaPagamento: string;
+  observacao: string;
   dataReferencia: string;
 }
 
@@ -65,6 +75,7 @@ export function validarLancamento(f: Formulario, ctx: Contexto): Resultado {
 
   let categoria: Categoria;
   let descricao: string;
+  let formaPagamento = '';
   if (f.tipo === 'Entrada') {
     if (f.categoria !== 'Dízimo' && f.categoria !== 'Oferta') {
       return falha('Escolha se a entrada é Dízimo ou Oferta.', 'categoria');
@@ -75,6 +86,9 @@ export function validarLancamento(f: Formulario, ctx: Contexto): Resultado {
     if (descricao.length > TAMANHO_MAXIMO_DESCRICAO) {
       return falha('O nome está muito longo (máximo de ' + TAMANHO_MAXIMO_DESCRICAO + ' letras).', 'contribuinte');
     }
+    const forma = FORMAS_PAGAMENTO.find((x) => normalizar(x) === normalizar(f.formaPagamento));
+    if (!forma) return falha('Escolha a forma de pagamento: Dinheiro ou PIX.', 'forma');
+    formaPagamento = forma;
   } else {
     categoria = 'Despesa';
     descricao = limparTexto(f.descricao);
@@ -82,6 +96,11 @@ export function validarLancamento(f: Formulario, ctx: Contexto): Resultado {
     if (descricao.length > TAMANHO_MAXIMO_DESCRICAO) {
       return falha('A descrição está muito longa (máximo de ' + TAMANHO_MAXIMO_DESCRICAO + ' letras).', 'descricao');
     }
+  }
+
+  const observacao = limparTexto(f.observacao);
+  if (observacao.length > TAMANHO_MAXIMO_OBSERVACAO) {
+    return falha('A observação está muito longa (máximo de ' + TAMANHO_MAXIMO_OBSERVACAO + ' letras).', 'observacao');
   }
 
   const data = String(f.dataReferencia ?? '').trim();
@@ -93,7 +112,7 @@ export function validarLancamento(f: Formulario, ctx: Contexto): Resultado {
     return falha('A data está muito no futuro (' + dataBR(data) + '). Confira o ano e o mês.', 'data');
   }
 
-  return { ok: true, dados: { responsavel, valorCentavos: valor, tipo: f.tipo, categoria, descricao, dataReferencia: data } };
+  return { ok: true, dados: { responsavel, valorCentavos: valor, tipo: f.tipo, categoria, descricao, formaPagamento, observacao, dataReferencia: data } };
 }
 
 /** Confere um e-mail para a lista de usuários. Devolve o e-mail em minúsculas ou null. */

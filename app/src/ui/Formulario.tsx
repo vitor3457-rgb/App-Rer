@@ -51,6 +51,8 @@ export function FormularioLancamento({
   const [categoria, setCategoria] = useState<Formulario['categoria']>(inicial && inicial.tipo === 'Entrada' ? inicial.categoria : '');
   const [descricao, setDescricao] = useState(inicial?.tipo === 'Saída' ? inicial.descricao : '');
   const [contribuinte, setContribuinte] = useState(inicial?.tipo === 'Entrada' ? inicial.descricao : '');
+  const [forma, setForma] = useState(inicial?.formaPagamento ?? '');
+  const [observacao, setObservacao] = useState(inicial?.observacao ?? '');
   const [data, setData] = useState(inicial?.dataReferencia ?? hojeISO());
   const [foto, setFoto] = useState<string | null | undefined>(undefined);
   const [erro, setErro] = useState<{ texto: string; campo: Campo } | null>(null);
@@ -102,7 +104,7 @@ export function FormularioLancamento({
   async function salvar() {
     if (salvando) return;
     const r = validarLancamento(
-      { responsavel, valorCentavos: centavos, tipo, categoria, descricao, contribuinte, dataReferencia: data },
+      { responsavel, valorCentavos: centavos, tipo, categoria, descricao, contribuinte, formaPagamento: forma, observacao, dataReferencia: data },
       { responsaveis, hoje },
     );
     if (!r.ok) {
@@ -122,6 +124,8 @@ export function FormularioLancamento({
           setCategoria('');
           setDescricao('');
           setContribuinte('');
+          setForma('');
+          setObservacao('');
           setData(hojeISO());
           setFoto(undefined);
         }
@@ -217,6 +221,13 @@ export function FormularioLancamento({
             />
             <Sugestoes testID="sugestoes-contribuinte" itens={sugerir(nomes, contribuinte, 10)} onEscolher={(t) => { setContribuinte(t); limparErro('contribuinte'); }} />
           </View>
+          <View>
+            <Rotulo>Forma de pagamento</Rotulo>
+            <View style={{ flexDirection: 'row', gap: ESPACO.m }}>
+              <BotaoOpcao testID="forma-dinheiro" titulo="Dinheiro" icone="cash-outline" cor={c.rocha} selecionado={forma === 'Dinheiro'} erro={com('forma')} onPress={() => { setForma('Dinheiro'); limparErro('forma'); }} />
+              <BotaoOpcao testID="forma-pix" titulo="PIX" icone="qr-code-outline" cor={c.rocha} selecionado={forma === 'PIX'} erro={com('forma')} onPress={() => { setForma('PIX'); limparErro('forma'); }} />
+            </View>
+          </View>
         </>
       ) : null}
 
@@ -244,6 +255,25 @@ export function FormularioLancamento({
         <Rotulo>Data</Rotulo>
         <CampoData valor={data} onMudar={(d) => { setData(d); limparErro('data'); }} minimo={DATA_MINIMA} maximo={somarDias(hoje, DIAS_NO_FUTURO)} erro={com('data')} />
       </View>
+
+      {/* ---------- Observação ---------- */}
+      {tipo ? (
+        <View>
+          <Rotulo extra="(opcional)">Observação</Rotulo>
+          <CampoTexto
+            testID="observacao"
+            erro={com('observacao')}
+            value={observacao}
+            onChangeText={(t) => { setObservacao(t); limparErro('observacao'); }}
+            placeholder={tipo === 'Entrada' ? 'Ex.: retirado da salva' : 'Ex.: pago pelo Lázaro'}
+            autoCapitalize="sentences"
+            maxLength={500}
+            multiline
+            accessibilityLabel="Observação"
+            style={{ minHeight: 72, textAlignVertical: 'top', paddingTop: 12 }}
+          />
+        </View>
+      ) : null}
 
       {/* ---------- Foto do comprovante ---------- */}
       {tipo ? (

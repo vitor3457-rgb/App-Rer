@@ -1,8 +1,8 @@
 // Importa o banco de dados do app antigo feito no AppSheet (arquivo .xlsx exportado por lá).
 // Abas usadas: "Movimentações", "Membros" e "Responsavel".
 // - Sem --aplicar: só mostra o resumo, não grava nada.
-// - Com --aplicar: marca como excluído tudo o que existe hoje no banco (eram testes) e grava os
-//   dados do AppSheet. Pode rodar de novo: os IDs são derivados dos IDs do AppSheet, então não duplica.
+// - Com --aplicar: grava os dados do AppSheet que ainda não estão no banco. Pode rodar de novo: os IDs
+//   são derivados dos IDs do AppSheet, então não duplica nem mexe no que já foi importado ou lançado no app.
 // O arquivo tem nomes de pessoas: NÃO deve ser colocado no repositório.
 // Rodar: NODE_USE_ENV_PROXY=1 node supabase/importar-appsheet.mjs <arquivo.xlsx> [--aplicar]
 import { createHash } from 'node:crypto';
@@ -11,6 +11,9 @@ import { sql } from './api.mjs';
 
 const arquivo = process.argv[2];
 const APLICAR = process.argv.includes('--aplicar');
+// PERIGOSO: marca como excluído tudo o que não veio do AppSheet. Só foi usado na 1ª importação (15/11/2026),
+// quando o banco só tinha testes. Depois disso o app passou a ter lançamentos de verdade: NÃO usar.
+const APAGAR_O_RESTO = process.argv.includes('--apagar-o-resto');
 if (!arquivo || arquivo.startsWith('--')) {
   console.error('Informe o caminho do arquivo .xlsx exportado do AppSheet.');
   process.exit(1);
@@ -114,14 +117,13 @@ if (problemas.length) {
 const idsL = lancamentos.map((l) => q(l.id)).join(',');
 const idsM = membros.map((m) => q(m.id)).join(',');
 await sql(`begin;
--- 1) o que existia eram testes: sai da lista (fica marcado como excluído, e os celulares recebem a exclusão)
-update public.lancamentos set excluido_em = now(), excluido_por = 'limpeza dos testes (importação do AppSheet)'
+${APAGAR_O_RESTO ? `update public.lancamentos set excluido_em = now(), excluido_por = 'limpeza dos testes (importação do AppSheet)'
  where excluido_em is null and id not in (${idsL});
-update public.membros set excluido_em = now() where excluido_em is null and id not in (${idsM});
--- 2) dados verdadeiros do AppSheet
+update public.membros set excluido_em = now() where excluido_em is null and id not in (${idsM});` : ''}
+-- dados do AppSheet (quem já foi importado é mantido como está)
 insert into public.membros (id, nome) values
 ${membros.map((m) => `(${q(m.id)}, ${q(m.nome)})`).join(',\n')}
-on conflict (id) do update set nome = excluded.nome, excluido_em = null;
+on conflict (id) do nothing;
 insert into public.lancamentos (id, data_referencia, tipo, categoria, descricao, membro_id, valor_centavos, responsavel, usuario_email, criado_em, forma_pagamento, observacao) values
 ${lancamentos.map((l) => `(${q(l.id)}, ${q(l.data)}, ${q(l.tipo)}, ${q(l.categoria)}, ${q(l.descricao)}, ${q(l.membroId)}, ${l.centavos}, ${q(l.responsavel)}, 'importado do AppSheet', ${q(l.criadoEm)}, ${q(l.forma)}, ${q(l.observacao)})`).join(',\n')}
 on conflict (id) do nothing;
