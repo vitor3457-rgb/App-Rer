@@ -10,3 +10,4 @@ dev/prints/
 *.log
 .DS_Store
 dev/preview-iframe.html
+docs/previa-*.png

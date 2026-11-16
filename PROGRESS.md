@@ -195,3 +195,4 @@ quando ele colar a URL de retorno, gravá-la em `url.txt`. Conferir com `npx cla
   Testes de integração criam e apagam só as próprias linhas (conferido).
 - Pendente: usuário não entendeu a proposta de design novo → explicar com uma prévia em imagem antes de mexer.
 
+- 16/11: enviada ao usuário uma prévia em imagem do design novo (docs/previa-design-novo.png, fora do git; fonte em HTML ficou só no scratchpad). Aguardando ele decidir se aplica.
