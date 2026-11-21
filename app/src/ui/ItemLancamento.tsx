@@ -50,7 +50,7 @@ export function ItemLancamento({
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={{ fontFamily: FONTE.forte, fontSize: 15.5, lineHeight: 20, color: c.texto }} numberOfLines={2}>{tituloDoLancamento(l)}</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          <Text style={{ fontFamily: FONTE.normal, fontSize: 12.5, color: c.textoSuave }} numberOfLines={1}>{legenda ?? legendaPadrao(l)}</Text>
+          <Text style={{ fontFamily: FONTE.normal, fontSize: 12.5, color: c.textoSuave }} numberOfLines={2}>{legenda ?? legendaPadrao(l)}</Text>
           {l.comprovante ? <Ionicons name="camera" size={13} color={c.textoSuave} accessibilityLabel="Tem foto" /> : null}
           {l.pendente ? (
             <View testID="item-pendente" style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: c.avisoSuave, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 1 }}>

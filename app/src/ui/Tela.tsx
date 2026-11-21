@@ -79,7 +79,7 @@ export function Cabecalho({ saudacao }: { saudacao?: string } = {}) {
           <Text testID="cabecalho-titulo" numberOfLines={1} style={{ fontFamily: FONTE.preta, fontSize: saudacao ? 19 : 21, letterSpacing: saudacao ? 0 : 1.2, color: c.texto, lineHeight: 25 }}>
             {saudacao ? 'Olá, ' + saudacao : NOME_APP}
           </Text>
-          <Text numberOfLines={1} style={{ fontFamily: FONTE.media, fontSize: 12, color: c.textoSuave }}>{saudacao ? NOME_APP + ' · Controle financeiro' : 'Controle financeiro'}</Text>
+          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={{ fontFamily: FONTE.media, fontSize: 12, color: c.textoSuave }}>{saudacao ? NOME_APP + ' · Controle financeiro' : 'Controle financeiro'}</Text>
         </View>
         <ChipSinc />
       </View>

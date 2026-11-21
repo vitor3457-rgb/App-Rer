@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import React, { useEffect, useState } from 'react';
-import { Keyboard, Platform, Pressable, Text, View } from 'react-native';
+import { Keyboard, Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
 
 import { Degrade } from './Degrade';
 import { FONTE, useCores } from './tema';
@@ -15,6 +15,20 @@ const ABAS: { nome: string; titulo: string; cheio: Icone; vazado: Icone; testID:
   { nome: 'dashboard', titulo: 'Dashboard', cheio: 'bar-chart', vazado: 'bar-chart-outline', testID: 'aba-dashboard' },
   { nome: 'mais', titulo: 'Mais', cheio: 'ellipsis-horizontal', vazado: 'ellipsis-horizontal', testID: 'aba-mais' },
 ];
+
+const LARGURA_DO_MAIS = 68;
+const MAIOR_NOME = Math.max(...ABAS.map((a) => a.titulo.length));
+
+/**
+ * Tamanho da letra dos nomes das abas: o normal é 11 (aumenta um pouco se o celular estiver com a letra
+ * grande), mas nunca passa do que cabe na largura de cada aba — assim "Lançamentos" nunca vira "Lançament…".
+ */
+export function tamanhoDaLetraDoMenu(larguraDaTela: number, escalaDaLetra: number): number {
+  const menu = Math.min(larguraDaTela - 28, 560) - 8;
+  const porAba = (menu - LARGURA_DO_MAIS) / (ABAS.length - 1);
+  const cabe = (porAba - 4) / (MAIOR_NOME * 0.62);
+  return Math.max(8, Math.min(11 * Math.min(escalaDaLetra || 1, 1.15), cabe));
+}
 
 /** Altura que o conteúdo das telas precisa deixar livre embaixo para o menu não cobrir nada. */
 export const ESPACO_DO_MENU = 120;
@@ -34,6 +48,8 @@ function useTecladoAberto(): boolean {
 export function MenuFlutuante({ state, emitter, navigateToTab, insets }: BottomTabBarProps) {
   const c = useCores();
   const teclado = useTecladoAberto();
+  const tela = useWindowDimensions();
+  const letra = tamanhoDaLetraDoMenu(tela.width, tela.fontScale);
   if (teclado) return null;
 
   function ir(nome: string) {
@@ -59,7 +75,7 @@ export function MenuFlutuante({ state, emitter, navigateToTab, insets }: BottomT
           const focada = atual === aba.nome;
           if (aba.nome === 'novo') {
             return (
-              <View key={aba.nome} style={{ flex: 1, alignItems: 'center' }}>
+              <View key={aba.nome} style={{ width: LARGURA_DO_MAIS, alignItems: 'center' }}>
                 <Pressable
                   testID={aba.testID}
                   accessibilityRole="button"
@@ -88,9 +104,17 @@ export function MenuFlutuante({ state, emitter, navigateToTab, insets }: BottomT
               accessibilityLabel={aba.titulo}
               accessibilityState={{ selected: focada }}
               onPress={() => ir(aba.nome)}
-              style={({ pressed }) => ({ flex: 1, alignItems: 'center', justifyContent: 'center', height: 60, opacity: pressed ? 0.6 : 1 })}>
+              style={({ pressed }) => ({ flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center', height: 60, opacity: pressed ? 0.6 : 1 })}>
               <Ionicons name={focada ? aba.cheio : aba.vazado} size={23} color={cor} />
-              <Text numberOfLines={1} style={{ fontFamily: focada ? FONTE.forte : FONTE.media, fontSize: 11, color: cor, marginTop: 2 }}>{aba.titulo}</Text>
+              {/* Com a letra do celular aumentada, o nome encolhe um pouco em vez de virar "Lançament…". */}
+              <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.7}
+                allowFontScaling={false}
+                style={{ fontFamily: focada ? FONTE.forte : FONTE.media, fontSize: letra, color: cor, marginTop: 2, paddingHorizontal: 1, textAlign: 'center' }}>
+                {aba.titulo}
+              </Text>
             </Pressable>
           );
         })}
