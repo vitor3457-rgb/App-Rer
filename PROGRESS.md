@@ -84,12 +84,12 @@ M16. [U] Teste no celular, ajustes, guia novo (README), desligar login por e-mai
   virava "Lançament…" → `tamanhoDaLetraDoMenu` (MenuFlutuante) calcula o tamanho que cabe. Legenda dos
   itens pode ter 2 linhas.
 - **Próximo passo exato:**
-  1. PDF para a contabilidade: o usuário pediu (21/11) que o superávit venha ZERADO ("o que entrou =
-     o que saiu", pedido da contabilidade). Recusado inventar despesa ou esconder entrada (documento
-     falso). Opções oferecidas: (a) se a sobra tem destino real (repasse à sede, depósito no banco,
-     reserva/obra), lançar como Saída de verdade e o PDF fecha zerado sozinho (posso criar atalho);
-     (b) Alex pedir à contabilidade o modelo exato; trocar o nome da linha para "Saldo a transportar
-     para o mês seguinte" (termo do livro-caixa) se aceitarem. Aguardando resposta.
+  1. PDF para a contabilidade (21/11, publicado): o usuário explicou que a igreja é a sede e que a sobra
+     de um mês paga despesas dos meses seguintes; a contabilidade quer origens = aplicações sem "caixa".
+     Feito de forma verdadeira: a sobra aparece como "Reserva para despesas dos próximos meses" e o
+     déficit como "Uso de reservas de meses anteriores"; sem quadro "Mantido em caixa", sem a palavra
+     superávit e sem e-mail no rodapé. Continua recusado inventar despesas/esconder entradas.
+     Aguardando o Alex confirmar com a contabilidade se o modelo atende (trocar nomes é fácil).
   2. (Feito em 21/11) O financeiro (Alex, alexsilvestre02@gmail.com) já está em Usuários e já lança.
   3. Escrever o guia novo no README e aposentar o app do Apps Script.
   4. Opcional: página de política de privacidade para publicar o OAuth (acaba com o relogin a cada 7 dias).

@@ -74,10 +74,11 @@ export default function Dashboard() {
       const d = demonstrativoContabil(doMes, mes);
       const rosca = graficoRosca([
         { rotulo: 'Despesas', centavos: d.totalDespesas, cor: p.saida },
-        { rotulo: 'Mantido em caixa', centavos: d.saldoMantido, cor: p.reserva },
+        { rotulo: 'Reserva p/ próximos meses', centavos: d.saldoMantido, cor: p.reserva },
       ].filter((f) => f.centavos > 0), { titulo: 'total aplicado', valor: formatarReais(d.totalAplicacoes).replace('R$ ', '') }, p);
       const despesas = d.despesas.length ? graficoBarras(d.despesas.map((x) => ({ ...x, cor: p.saida })), p) : null;
-      await compartilharPdf(htmlContabilidade(d, { rosca, despesas }, cabecalhoRelatorio()), nomeArquivo(NOME_APP, 'contabilidade', mes, 'pdf'));
+      // Sem o e-mail de quem gerou: o arquivo vai para fora da igreja.
+      await compartilharPdf(htmlContabilidade(d, { rosca, despesas }, { ...cabecalhoRelatorio(), geradoPor: '' }), nomeArquivo(NOME_APP, 'contabilidade', mes, 'pdf'));
     }, 'Não foi possível gerar o PDF.');
     setExportando('');
   }

@@ -134,7 +134,7 @@ function pagina(titulo: string, cab: Cabecalho, corpo: string): string {
 <div class="topo"><img src="${cab.logo}" alt=""><div>
 <h1>${esc(cab.nomeApp)}</h1><div class="igreja">${esc(cab.nomeCompleto)}</div><div class="titulo">${esc(titulo)}</div></div></div>
 ${corpo}
-<div class="rodape">Gerado em ${esc(cab.geradoEm)} por ${esc(cab.geradoPor)}</div>
+<div class="rodape">Gerado em ${esc(cab.geradoEm)}${cab.geradoPor ? ' por ' + esc(cab.geradoPor) : ''}</div>
 </body></html>`;
 }
 
@@ -216,13 +216,13 @@ export function htmlContabilidade(d: Demonstrativo, g: GraficosContabilidade, ca
   const origens = [
     linha('Dízimos', d.dizimos, 'sub'),
     linha('Ofertas', d.ofertas, 'sub'),
-    d.usoSaldoAnterior ? linha('Uso do saldo de meses anteriores', d.usoSaldoAnterior, 'sub') : '',
+    d.usoSaldoAnterior ? linha('Uso de reservas de meses anteriores', d.usoSaldoAnterior, 'sub') : '',
     linha('Total das origens', d.totalOrigens, 'total'),
   ].join('\n');
   const aplicacoes = [
     ...d.despesas.map((x) => linha(x.rotulo, x.centavos, 'sub')),
     d.despesas.length ? linha('Total das despesas', d.totalDespesas, 'subtotal') : '<tr class="sub"><td>Nenhuma despesa no mês</td><td class="num">R$ 0,00</td></tr>',
-    d.saldoMantido ? linha('Saldo do mês mantido em caixa (superávit)', d.saldoMantido, 'reserva') : '',
+    d.saldoMantido ? linha('Reserva para despesas dos próximos meses', d.saldoMantido, 'reserva') : '',
     linha('Total das aplicações', d.totalAplicacoes, 'total'),
   ].join('\n');
   const corpo = `<style>
@@ -236,7 +236,6 @@ export function htmlContabilidade(d: Demonstrativo, g: GraficosContabilidade, ca
 <div class="quadros">
 ${quadro('Total das origens', formatarReais(d.totalOrigens), 'verde')}
 ${quadro('Total das despesas', formatarReais(d.totalDespesas), 'vermelho')}
-${quadro('Mantido em caixa', formatarReais(d.saldoMantido))}
 ${quadro('Total das aplicações', formatarReais(d.totalAplicacoes))}
 </div>
 <div class="duas bloco">
@@ -249,8 +248,7 @@ ${quadro('Total das aplicações', formatarReais(d.totalAplicacoes))}
 <div><h2>Despesas do mês</h2><div class="grafico">${g.despesas ? g.despesas.xml : '<p>Nenhuma despesa neste mês.</p>'}</div></div>
 </div>
 <p class="nota">Valores do mês de ${esc(nomeMes(d.mes).toLowerCase())}, apenas com os lançamentos do próprio mês.
-O "saldo do mês mantido em caixa" não é despesa: é o valor que entrou e ficou guardado na igreja para os meses seguintes.
-${d.usoSaldoAnterior ? 'Neste mês as despesas foram maiores que as entradas; a diferença foi paga com o saldo de meses anteriores. ' : ''}Com ele, o total das aplicações fica igual ao total das origens.</p>`;
+${d.saldoMantido ? 'A "reserva para despesas dos próximos meses" é a parte das entradas deste mês separada para pagar despesas dos meses seguintes. ' : ''}${d.usoSaldoAnterior ? 'Neste mês as despesas foram maiores que as entradas; a diferença foi paga com reservas de meses anteriores. ' : ''}Assim, o total das aplicações é igual ao total das origens.</p>`;
   return pagina('Demonstrativo de origens e aplicações - ' + nomeMes(d.mes), cab, corpo);
 }
 

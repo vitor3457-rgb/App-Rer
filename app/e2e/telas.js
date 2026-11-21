@@ -414,7 +414,9 @@ function reais(texto) {
     assert.match(corpo, new RegExp('Total das origens ' + brl(total) + ' = Total das aplicações ' + brl(total)));
     assert.match(corpo, /Aluguel/);
     assert.doesNotMatch(corpo, /Outros|Outras despesas/);
-    if (entradas > saidas) assert.match(corpo, new RegExp('Saldo do mês mantido em caixa \\(superávit\\)\\s*' + brl(entradas - saidas)));
+    if (entradas > saidas) assert.match(corpo, new RegExp('Reserva para despesas dos próximos meses\\s*' + brl(entradas - saidas)));
+    else assert.match(corpo, new RegExp('Uso de reservas de meses anteriores\\s*' + brl(saidas - entradas)));
+    assert.doesNotMatch(corpo, /superávit|Mantido em caixa|demo@/i, 'sem "superávit", sem "mantido em caixa" e sem e-mail');
     await relatorio.pdf({ path: path.join(PRINTS, 'contabilidade-exemplo.pdf'), format: 'A4', printBackground: true }).catch(() => {});
     await relatorio.close();
   });
