@@ -219,11 +219,12 @@ export function htmlContabilidade(d: Demonstrativo, g: GraficosContabilidade, ca
     d.usoSaldoAnterior ? linha('Uso de reservas de meses anteriores', d.usoSaldoAnterior, 'sub') : '',
     linha('Total das origens', d.totalOrigens, 'total'),
   ].join('\n');
-  const aplicacoes = [
+  // A contabilidade pediu a reserva dentro das despesas (o mês fecha com origens = despesas).
+  const despesas = [
     ...d.despesas.map((x) => linha(x.rotulo, x.centavos, 'sub')),
-    d.despesas.length ? linha('Total das despesas', d.totalDespesas, 'subtotal') : '<tr class="sub"><td>Nenhuma despesa no mês</td><td class="num">R$ 0,00</td></tr>',
-    d.saldoMantido ? linha('Reserva para despesas dos próximos meses', d.saldoMantido, 'reserva') : '',
-    linha('Total das aplicações', d.totalAplicacoes, 'total'),
+    d.saldoMantido ? linha('Reserva para despesas dos próximos meses', d.saldoMantido, 'sub') : '',
+    d.despesas.length || d.saldoMantido ? '' : '<tr class="sub"><td>Nenhuma despesa no mês</td><td class="num">R$ 0,00</td></tr>',
+    linha('Total das despesas', d.totalAplicacoes, 'total'),
   ].join('\n');
   const corpo = `<style>
   .demo { width: 100%; } .demo td { padding: 5pt 7pt; border-bottom: 0.5pt solid #e8e2e0; }
@@ -235,20 +236,19 @@ export function htmlContabilidade(d: Demonstrativo, g: GraficosContabilidade, ca
 </style>
 <div class="quadros">
 ${quadro('Total das origens', formatarReais(d.totalOrigens), 'verde')}
-${quadro('Total das despesas', formatarReais(d.totalDespesas), 'vermelho')}
-${quadro('Total das aplicações', formatarReais(d.totalAplicacoes))}
+${quadro('Total das despesas', formatarReais(d.totalAplicacoes), 'vermelho')}
+${quadro('Diferença', formatarReais(d.totalOrigens - d.totalAplicacoes))}
 </div>
 <div class="duas bloco">
 <div><h2>Origens dos recursos</h2><table class="demo">${origens}</table></div>
-<div><h2>Aplicações dos recursos</h2><table class="demo">${aplicacoes}</table></div>
+<div><h2>Despesas</h2><table class="demo">${despesas}</table></div>
 </div>
-<div class="igual">Total das origens ${formatarReais(d.totalOrigens)} = Total das aplicações ${formatarReais(d.totalAplicacoes)}</div>
+<div class="igual">Total das origens ${formatarReais(d.totalOrigens)} = Total das despesas ${formatarReais(d.totalAplicacoes)}</div>
 <div class="duas bloco">
-<div><h2>Como os recursos foram aplicados</h2><div class="grafico">${g.rosca.xml}</div></div>
+<div><h2>Composição das despesas</h2><div class="grafico">${g.rosca.xml}</div></div>
 <div><h2>Despesas do mês</h2><div class="grafico">${g.despesas ? g.despesas.xml : '<p>Nenhuma despesa neste mês.</p>'}</div></div>
 </div>
-<p class="nota">Valores do mês de ${esc(nomeMes(d.mes).toLowerCase())}, apenas com os lançamentos do próprio mês.
-${d.saldoMantido ? 'A "reserva para despesas dos próximos meses" é a parte das entradas deste mês separada para pagar despesas dos meses seguintes. ' : ''}${d.usoSaldoAnterior ? 'Neste mês as despesas foram maiores que as entradas; a diferença foi paga com reservas de meses anteriores. ' : ''}Assim, o total das aplicações é igual ao total das origens.</p>`;
+`;
   return pagina('Demonstrativo de origens e aplicações - ' + nomeMes(d.mes), cab, corpo);
 }
 

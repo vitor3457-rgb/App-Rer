@@ -77,7 +77,9 @@ describe('relatório para a contabilidade', () => {
     const d = demonstrativoContabil([...nov, lanc({ dataReferencia: '2026-11-20', valorCentavos: 100000 })], '2026-11');
     const html = htmlContabilidade(d, { rosca, despesas: graficoBarras([{ rotulo: 'Luz', centavos: 12735, cor: '#C0262D' }], PALETA_CLARA) }, cab);
     expect(html).toContain('Demonstrativo de origens e aplicações - Novembro de 2026');
-    expect(html).toMatch(/Total das origens R\$ 1\.070,50 = Total das aplicações R\$ 1\.070,50/);
+    expect(html).toMatch(/Total das origens R\$ 1\.070,50 = Total das despesas R\$ 1\.070,50/);
+    expect(html).toMatch(/Reserva para despesas dos próximos meses<\/td><td class="num">R\$ 943,15[\s\S]*Total das despesas<\/td><td class="num">R\$ 1\.070,50/);
+    expect(html).not.toContain('class="nota"'); // sem a nota em letras miúdas
     expect(html).toContain('Reserva para despesas dos próximos meses');
     expect(html).not.toMatch(/superávit|Mantido em caixa/i);
     expect(html).toContain('R$ 943,15');
@@ -91,7 +93,7 @@ describe('relatório para a contabilidade', () => {
     const html = htmlContabilidade(d, { rosca, despesas: null }, cab);
     expect(html).toContain('Uso de reservas de meses anteriores');
     expect(html).not.toContain('Reserva para despesas dos próximos meses</td>');
-    expect(html).toMatch(/Total das origens R\$ 300,00 = Total das aplicações R\$ 300,00/);
+    expect(html).toMatch(/Total das origens R\$ 300,00 = Total das despesas R\$ 300,00/);
   });
 
   test('sem o e-mail de quem gerou, quando o cabeçalho não traz', () => {

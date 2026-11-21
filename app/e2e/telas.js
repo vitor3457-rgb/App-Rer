@@ -411,7 +411,7 @@ function reais(texto) {
     assert.match(corpo, /Demonstrativo de origens e aplicações - Novembro de 2026/);
     const brl = (c) => 'R\\$ ' + (c / 100).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     const total = Math.max(entradas, saidas);
-    assert.match(corpo, new RegExp('Total das origens ' + brl(total) + ' = Total das aplicações ' + brl(total)));
+    assert.match(corpo, new RegExp('Total das origens ' + brl(total) + ' = Total das despesas ' + brl(total)));
     assert.match(corpo, /Aluguel/);
     assert.doesNotMatch(corpo, /Outros|Outras despesas/);
     if (entradas > saidas) assert.match(corpo, new RegExp('Reserva para despesas dos próximos meses\\s*' + brl(entradas - saidas)));

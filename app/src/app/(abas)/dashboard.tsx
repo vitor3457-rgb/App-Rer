@@ -73,10 +73,14 @@ export default function Dashboard() {
       }
       const d = demonstrativoContabil(doMes, mes);
       const rosca = graficoRosca([
-        { rotulo: 'Despesas', centavos: d.totalDespesas, cor: p.saida },
-        { rotulo: 'Reserva p/ próximos meses', centavos: d.saldoMantido, cor: p.reserva },
-      ].filter((f) => f.centavos > 0), { titulo: 'total aplicado', valor: formatarReais(d.totalAplicacoes).replace('R$ ', '') }, p);
-      const despesas = d.despesas.length ? graficoBarras(d.despesas.map((x) => ({ ...x, cor: p.saida })), p) : null;
+        { rotulo: 'Despesas pagas', centavos: d.totalDespesas, cor: p.saida },
+        { rotulo: 'Reserva', centavos: d.saldoMantido, cor: p.reserva },
+      ].filter((f) => f.centavos > 0), { titulo: 'total', valor: formatarReais(d.totalAplicacoes).replace('R$ ', '') }, p);
+      const barras = [
+        ...d.despesas.map((x) => ({ ...x, cor: p.saida })),
+        ...(d.saldoMantido ? [{ rotulo: 'Reserva p/ próximos meses', centavos: d.saldoMantido, cor: p.reserva }] : []),
+      ];
+      const despesas = barras.length ? graficoBarras(barras, p) : null;
       // Sem o e-mail de quem gerou: o arquivo vai para fora da igreja.
       await compartilharPdf(htmlContabilidade(d, { rosca, despesas }, { ...cabecalhoRelatorio(), geradoPor: '' }), nomeArquivo(NOME_APP, 'contabilidade', mes, 'pdf'));
     }, 'Não foi possível gerar o PDF.');
@@ -152,7 +156,7 @@ export default function Dashboard() {
           <Botao testID="exportar-dashboard" titulo="Dashboard em PDF" tipo="secundario" icone="document-text-outline" carregando={exportando === 'dashboard'} onPress={() => void exportar('dashboard')} />
           <Botao testID="exportar-contabilidade" titulo="PDF para a contabilidade" tipo="secundario" icone="briefcase-outline" carregando={exportando === 'contabilidade'} onPress={() => void exportar('contabilidade')} />
           <Texto tipo="pequeno" suave>
-            O PDF para a contabilidade mostra só os lançamentos do mês: as entradas de um lado e, do outro, as despesas mais o saldo que ficou guardado em caixa, de modo que os dois totais fiquem iguais.
+            O PDF para a contabilidade mostra só os lançamentos do mês: as entradas de um lado e, do outro, as despesas, com a sobra do mês como "Reserva para despesas dos próximos meses", de modo que os dois totais fiquem iguais.
           </Texto>
         </Cartao>
       </Corpo>
