@@ -3,10 +3,10 @@ import { Text, View } from 'react-native';
 
 import { hojeISO, nomeMes, nomeMesCurto } from '@/core/datas';
 import { formatarComSinal, formatarReais } from '@/core/dinheiro';
-import { PALETA_CLARA, PALETA_ESCURA, Paleta, graficoBarras, graficoComparativo, graficoLinha } from '@/core/graficos';
-import { htmlDashboard, nomeArquivo } from '@/core/relatorios';
+import { PALETA_CLARA, PALETA_ESCURA, Paleta, graficoBarras, graficoComparativo, graficoLinha, graficoRosca } from '@/core/graficos';
+import { htmlContabilidade, htmlDashboard, nomeArquivo } from '@/core/relatorios';
 import { Lancamento } from '@/core/tipos';
-import { ResumoMes, despesasPrincipais, serieDiaria } from '@/core/totais';
+import { ResumoMes, demonstrativoContabil, despesasPrincipais, serieDiaria } from '@/core/totais';
 import { NOME_APP } from '@/config';
 import { useCaixa } from '@/dados/hooks';
 import { tentar } from '@/ui/acoes';
@@ -15,6 +15,7 @@ import { cabecalhoRelatorio, compartilharPdf } from '@/ui/exportar';
 import { Desenho, LinhaComToque } from '@/ui/Graficos';
 import { useMes } from '@/ui/mes';
 import { SeletorMes } from '@/ui/SeletorMes';
+import { ESPACO_DO_MENU } from '@/ui/MenuFlutuante';
 import { Cabecalho, Corpo } from '@/ui/Tela';
 import { ESPACO, FONTE, RAIO, useCores } from '@/ui/tema';
 
@@ -26,11 +27,11 @@ function montarGraficos(doMes: Lancamento[], resumo: ResumoMes, comparativo: Res
   return {
     dias,
     linha: graficoLinha(dias, p),
-    barras: graficoBarras([
+    rosca: graficoRosca([
       { rotulo: 'Dízimos', centavos: resumo.dizimos, cor: p.entrada },
-      { rotulo: 'Ofertas', centavos: resumo.ofertas, cor: p.entrada },
-      { rotulo: 'Saídas (despesas)', centavos: resumo.saidas, cor: p.saida },
-    ], p),
+      { rotulo: 'Ofertas', centavos: resumo.ofertas, cor: p.entradaClara },
+      { rotulo: 'Saídas', centavos: resumo.saidas, cor: p.saida },
+    ], { titulo: 'resultado', valor: formatarComSinal(resumo.resultado).replace('R$ ', ''), cor: resumo.resultado < 0 ? p.saida : p.entrada }, p),
     despesas: despesas.length ? graficoBarras(despesas, p) : null,
     comparativo: graficoComparativo(comparativo, p, resumo.mes),
   };
@@ -51,7 +52,7 @@ export default function Dashboard() {
   const c = useCores();
   const mes = useMes();
   const caixa = useCaixa();
-  const [exportando, setExportando] = useState(false);
+  const [exportando, setExportando] = useState<'' | 'dashboard' | 'contabilidade'>('');
 
   const doMes = caixa.porMes.get(mes) ?? [];
   const resumo = caixa.resumoDoMes(mes);
@@ -59,22 +60,33 @@ export default function Dashboard() {
   const g = useMemo(() => montarGraficos(doMes, resumo, comparativo, c.escuro ? PALETA_ESCURA : PALETA_CLARA), [doMes, resumo, comparativo, c.escuro]);
   const temHistorico = comparativo.some((m) => m.quantidade > 0);
 
-  async function exportar() {
+  async function exportar(qual: 'dashboard' | 'contabilidade') {
     if (exportando) return;
-    setExportando(true);
+    setExportando(qual);
     await tentar(async () => {
       if (!doMes.length) throw new Error('Não há lançamentos em ' + nomeMes(mes) + ' para exportar.');
-      const claro = montarGraficos(doMes, resumo, comparativo, PALETA_CLARA); // o PDF é sempre em fundo branco
-      await compartilharPdf(htmlDashboard(resumo, comparativo, claro, cabecalhoRelatorio()), nomeArquivo(NOME_APP, 'dashboard', mes, 'pdf'));
+      const p = PALETA_CLARA; // o PDF é sempre em fundo branco
+      if (qual === 'dashboard') {
+        const claro = montarGraficos(doMes, resumo, comparativo, p);
+        await compartilharPdf(htmlDashboard(resumo, comparativo, claro, cabecalhoRelatorio()), nomeArquivo(NOME_APP, 'dashboard', mes, 'pdf'));
+        return;
+      }
+      const d = demonstrativoContabil(doMes, mes);
+      const rosca = graficoRosca([
+        { rotulo: 'Despesas', centavos: d.totalDespesas, cor: p.saida },
+        { rotulo: 'Mantido em caixa', centavos: d.saldoMantido, cor: p.reserva },
+      ].filter((f) => f.centavos > 0), { titulo: 'total aplicado', valor: formatarReais(d.totalAplicacoes).replace('R$ ', '') }, p);
+      const despesas = d.despesas.length ? graficoBarras(d.despesas.map((x) => ({ ...x, cor: p.saida })), p) : null;
+      await compartilharPdf(htmlContabilidade(d, { rosca, despesas }, cabecalhoRelatorio()), nomeArquivo(NOME_APP, 'contabilidade', mes, 'pdf'));
     }, 'Não foi possível gerar o PDF.');
-    setExportando(false);
+    setExportando('');
   }
 
   const corCaixa = resumo.saldoCaixa < 0 ? c.saida : c.entrada;
   return (
     <View style={{ flex: 1 }} testID="tela-dashboard">
       <Cabecalho />
-      <Corpo puxarParaAtualizar>
+      <Corpo puxarParaAtualizar espacoInferior={ESPACO_DO_MENU}>
         <Texto tipo="titulo">Dashboard</Texto>
         <SeletorMes />
 
@@ -102,7 +114,7 @@ export default function Dashboard() {
             </Cartao>
             <Cartao style={{ gap: ESPACO.m }}>
               <Texto tipo="subtitulo">De onde veio e para onde foi</Texto>
-              <Desenho testID="g-barras" grafico={g.barras} descricao={`Dízimos ${formatarReais(resumo.dizimos)}, ofertas ${formatarReais(resumo.ofertas)}, saídas ${formatarReais(resumo.saidas)}`} />
+              <Desenho testID="g-rosca" grafico={g.rosca} descricao={`Dízimos ${formatarReais(resumo.dizimos)}, ofertas ${formatarReais(resumo.ofertas)}, saídas ${formatarReais(resumo.saidas)}`} />
             </Cartao>
             <Cartao style={{ gap: ESPACO.m }}>
               <Texto tipo="subtitulo">Maiores despesas</Texto>
@@ -134,7 +146,14 @@ export default function Dashboard() {
           </Cartao>
         ) : null}
 
-        <Botao testID="exportar-dashboard" titulo="Exportar dashboard em PDF" tipo="secundario" icone="document-text-outline" carregando={exportando} onPress={() => void exportar()} />
+        <Cartao style={{ gap: ESPACO.m }}>
+          <Texto tipo="subtitulo" style={{ fontSize: 17 }}>Relatórios em PDF de {nomeMes(mes).toLowerCase()}</Texto>
+          <Botao testID="exportar-dashboard" titulo="Dashboard em PDF" tipo="secundario" icone="document-text-outline" carregando={exportando === 'dashboard'} onPress={() => void exportar('dashboard')} />
+          <Botao testID="exportar-contabilidade" titulo="PDF para a contabilidade" tipo="secundario" icone="briefcase-outline" carregando={exportando === 'contabilidade'} onPress={() => void exportar('contabilidade')} />
+          <Texto tipo="pequeno" suave>
+            O PDF para a contabilidade mostra só os lançamentos do mês: as entradas de um lado e, do outro, as despesas mais o saldo que ficou guardado em caixa, de modo que os dois totais fiquem iguais.
+          </Texto>
+        </Cartao>
       </Corpo>
     </View>
   );

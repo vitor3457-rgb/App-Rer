@@ -56,7 +56,7 @@ export function CamadaDeAvisos() {
   return (
     <>
       {aviso ? (
-        <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: margens.bottom + 84, alignItems: 'center', paddingHorizontal: ESPACO.g }}>
+        <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: margens.bottom + 96, alignItems: 'center', paddingHorizontal: ESPACO.g }}>
           <Pressable
             testID="aviso"
             accessibilityRole="alert"

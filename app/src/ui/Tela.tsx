@@ -67,17 +67,19 @@ export function ChipSinc() {
   );
 }
 
-/** Topo das telas principais: logo, nome e estado da sincronização. */
-export function Cabecalho() {
+/** Topo das telas principais: logo, nome (ou saudação) e estado da sincronização. */
+export function Cabecalho({ saudacao }: { saudacao?: string } = {}) {
   const c = useCores();
   const margens = useSafeAreaInsets();
   return (
-    <View style={{ backgroundColor: c.cartao, paddingTop: margens.top, borderBottomWidth: 4, borderBottomColor: c.laranja }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: ESPACO.m, paddingHorizontal: ESPACO.g, paddingVertical: ESPACO.p, maxWidth: 592, width: '100%', alignSelf: 'center' }}>
-        <Image source={require('@/assets/images/logo.png')} style={{ width: 62, height: 38 }} contentFit="contain" accessibilityLabel="Logo da igreja" />
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontFamily: FONTE.preta, fontSize: 22, letterSpacing: 1.5, color: c.texto, lineHeight: 26 }}>{NOME_APP}</Text>
-          <Text style={{ fontFamily: FONTE.media, fontSize: 12, color: c.textoSuave }}>Controle financeiro</Text>
+    <View style={{ backgroundColor: c.fundo, paddingTop: margens.top }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: ESPACO.m, paddingHorizontal: ESPACO.g, paddingTop: ESPACO.m, paddingBottom: ESPACO.p, maxWidth: 592, width: '100%', alignSelf: 'center' }}>
+        <Image source={require('@/assets/images/logo.png')} style={{ width: 58, height: 36 }} contentFit="contain" accessibilityLabel="Logo da igreja" />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text testID="cabecalho-titulo" numberOfLines={1} style={{ fontFamily: FONTE.preta, fontSize: saudacao ? 19 : 21, letterSpacing: saudacao ? 0 : 1.2, color: c.texto, lineHeight: 25 }}>
+            {saudacao ? 'Olá, ' + saudacao : NOME_APP}
+          </Text>
+          <Text numberOfLines={1} style={{ fontFamily: FONTE.media, fontSize: 12, color: c.textoSuave }}>{saudacao ? NOME_APP + ' · Controle financeiro' : 'Controle financeiro'}</Text>
         </View>
         <ChipSinc />
       </View>

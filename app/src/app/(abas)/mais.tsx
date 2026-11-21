@@ -12,6 +12,7 @@ import { avisar, avisarErro, perguntar } from '@/ui/avisos';
 import { Botao, CampoTexto, Cartao, ItemMenu, MensagemErro, Rotulo, Separador, Texto } from '@/ui/base';
 import { Janela } from '@/ui/Janela';
 import { DIAS_SEMANA, LEMBRETE_DISPONIVEL, Lembrete, salvarLembrete, textoLembrete, useLembrete } from '@/ui/lembrete';
+import { ESPACO_DO_MENU } from '@/ui/MenuFlutuante';
 import { Cabecalho, Corpo } from '@/ui/Tela';
 import { ESPACO, FONTE, PreferenciaTema, definirTema, useCores, usePreferenciaTema } from '@/ui/tema';
 import { toque } from '@/ui/toque';
@@ -133,7 +134,7 @@ export default function Mais() {
   return (
     <View style={{ flex: 1 }} testID="tela-mais">
       <Cabecalho />
-      <Corpo>
+      <Corpo espacoInferior={ESPACO_DO_MENU}>
         <Texto tipo="titulo">Mais</Texto>
 
         <Cartao style={{ gap: 2 }}>

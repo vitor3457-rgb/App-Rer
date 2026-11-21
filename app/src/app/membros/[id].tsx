@@ -2,13 +2,14 @@ import { router, useLocalSearchParams } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { Switch, View } from 'react-native';
 
+import { dataBR } from '@/core/datas';
 import { formatarReais } from '@/core/dinheiro';
 import { historicoDoMembro } from '@/core/totais';
 import { banco } from '@/dados';
 import { useBanco, usePodeEscrever } from '@/dados/hooks';
 import { avisar, avisarErro, perguntar } from '@/ui/avisos';
 import { Botao, CampoTexto, Cartao, LinhaValor, MensagemErro, Rotulo, Texto, Vazio } from '@/ui/base';
-import { ItemLancamento } from '@/ui/ItemLancamento';
+import { GrupoDeLancamentos, ItemLancamento } from '@/ui/ItemLancamento';
 import { CabecalhoVoltar, Corpo } from '@/ui/Tela';
 import { ESPACO, useCores } from '@/ui/tema';
 
@@ -104,9 +105,13 @@ export default function DetalheMembro() {
 
         <View style={{ gap: ESPACO.p + 2 }}>
           <Texto tipo="subtitulo">Histórico</Texto>
-          {h.itens.map((l) => (
-            <ItemLancamento key={l.id} l={l} mostrarAno aoAbrir={() => router.push({ pathname: '/lancamento/[id]', params: { id: l.id } })} />
-          ))}
+          {h.itens.length ? (
+            <GrupoDeLancamentos>
+              {h.itens.map((l) => (
+                <ItemLancamento key={l.id} l={l} emGrupo legenda={dataBR(l.dataReferencia) + (l.formaPagamento ? ' · ' + l.formaPagamento : '')} aoAbrir={() => router.push({ pathname: '/lancamento/[id]', params: { id: l.id } })} />
+              ))}
+            </GrupoDeLancamentos>
+          ) : null}
           {!h.itens.length ? <Texto suave>Nenhuma contribuição registrada para este nome.</Texto> : null}
         </View>
 

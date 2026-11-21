@@ -51,6 +51,8 @@ function reais(texto) {
     await p.waitForSelector(t('tela-login'));
     if (opcoes.entrar !== false) {
       await p.click(t('entrar-google'));
+      await p.waitForSelector(t('tela-inicio'));
+      await p.click(t('aba-novo'));
       await p.waitForSelector(t('tela-novo'));
       await p.waitForSelector(t('responsavel-Alex'));
     }
@@ -67,6 +69,8 @@ function reais(texto) {
   }
   const demo = (p, codigo) => p.evaluate(codigo);
   const D = (id) => t('tela-dashboard') + ' ' + t(id); // dentro do Dashboard
+  // Dentro da lista de lançamentos (no navegador a tela Início, com os últimos lançamentos, fica por baixo).
+  const L = (id) => t('tela-lancamentos') + ' ' + t(id);
   const voltar = (p) => p.locator(t('voltar')).last().click(); // a tela de cima é a última
   /** Espera a quantidade de elementos visíveis chegar a `n` (a tela redesenha um instante depois da ação). */
   async function contar(p, seletor, n) {
@@ -87,11 +91,31 @@ function reais(texto) {
   await passo('login: mostra o logo e entra', async () => {
     await print(p, '00-login');
     await p.click(t('entrar-google'));
+    await p.waitForSelector(t('tela-inicio'));
+    assert.match(await texto(p, 'cabecalho-titulo'), /Olá, Demonstração/);
+    const caixaInicio = reais(await texto(p, 'inicio-caixa'));
+    const todos = await linhasServidor(p);
+    const esperado = 150000 + todos.reduce((s, l) => s + (l.tipo === 'Entrada' ? 1 : -1) * l.valorCentavos, 0);
+    assert.strictEqual(caixaInicio, esperado, 'saldo em caixa = abertura + entradas - saídas');
+    assert.ok(await p.locator(t('inicio-grafico') + ' svg').count(), 'gráfico do caixa do mês');
+    assert.strictEqual(await p.locator(t('ultimos') + ' ' + t('item-lancamento')).count(), 5);
+    await print(p, '01-inicio', true);
+    await p.click(t('aba-novo'));
     await p.waitForSelector(t('tela-novo'));
     await p.waitForSelector(t('responsavel-Alex'));
     assert.match(await p.getAttribute(t('responsavel-Alex'), 'aria-label'), /escolhido/, 'Alex já vem escolhido');
     assert.match(await texto(p, 'chip-sinc'), /Sincronizado|Atualizando/);
     await print(p, '01-novo');
+  });
+
+  await passo('início: "ver todos" abre os lançamentos do mês atual', async () => {
+    await p.click(t('aba-inicio'));
+    await p.click(t('ver-todos'));
+    await p.waitForSelector(t('tela-lancamentos'));
+    assert.match(await texto(p, 'mes-atual'), /Novembro de 2026/);
+    assert.ok(await p.locator(t('grupo-dia')).count() >= 3, 'lista agrupada por dia');
+    await p.click(t('aba-novo'));
+    await p.waitForSelector(t('tela-novo'));
   });
 
   let antes = 0;
@@ -185,19 +209,19 @@ function reais(texto) {
     await print(p, '04-sem-internet');
     await p.click(t('aba-lancamentos'));
     await p.waitForSelector(t('tela-lancamentos'));
-    assert.strictEqual(await p.locator(t('item-pendente')).count(), 1);
+    assert.strictEqual(await p.locator(L('item-pendente')).count(), 1);
     const naFila = (await linhasServidor(p)).filter((l) => l.valorCentavos === 2500 && l.categoria === 'Oferta').length;
     assert.strictEqual(naFila, 0, 'ainda não chegou ao servidor');
     await demo(p, () => { window.__ADRER_DEMO__.remoto.online = true; window.__ADRER_DEMO__.banco.definirOnline(true); });
     await p.waitForFunction(() => /Sincronizado/.test(document.querySelector('[data-testid="chip-sinc"]').innerText));
-    assert.strictEqual(await p.locator(t('item-pendente')).count(), 0);
+    assert.strictEqual(await p.locator(L('item-pendente')).count(), 0);
     assert.strictEqual((await linhasServidor(p)).filter((l) => l.valorCentavos === 2500 && l.categoria === 'Oferta').length, 1);
   });
 
   let caixaNov = 0;
   await passo('lançamentos: lista do mês, cores e resumo com saldo anterior → saldo em caixa', async () => {
     assert.match(await texto(p, 'mes-atual'), /Novembro de 2026/);
-    const itens = await p.locator(t('item-lancamento')).count();
+    const itens = await p.locator(L('item-lancamento')).count();
     const servidorNov = (await linhasServidor(p)).filter((l) => l.dataReferencia.startsWith('2026-11'));
     assert.strictEqual(itens, servidorNov.length);
     const soma = (f) => servidorNov.filter(f).reduce((s, l) => s + l.valorCentavos, 0);
@@ -213,8 +237,8 @@ function reais(texto) {
     const todos = await linhasServidor(p);
     const antesDeNov = todos.filter((l) => l.dataReferencia < '2026-11-01').reduce((s, l) => s + (l.tipo === 'Entrada' ? 1 : -1) * l.valorCentavos, 0);
     assert.strictEqual(anterior, 150000 + antesDeNov, 'saldo anterior = abertura + tudo o que veio antes');
-    const corEntrada = await p.locator(t('item-lancamento') + ':has-text("Oferta") ' + t('item-valor')).first().evaluate((e) => getComputedStyle(e).color);
-    const corSaida = await p.locator(t('item-lancamento') + ':has-text("Aluguel") ' + t('item-valor')).first().evaluate((e) => getComputedStyle(e).color);
+    const corEntrada = await p.locator(L('item-lancamento') + ':has-text("Oferta") ' + t('item-valor')).first().evaluate((e) => getComputedStyle(e).color);
+    const corSaida = await p.locator(L('item-lancamento') + ':has-text("Aluguel") ' + t('item-valor')).first().evaluate((e) => getComputedStyle(e).color);
     assert.strictEqual(corEntrada, 'rgb(26, 122, 56)');
     assert.strictEqual(corSaida, 'rgb(192, 38, 45)');
     await print(p, '05-lancamentos', true);
@@ -246,49 +270,52 @@ function reais(texto) {
   });
 
   await passo('busca e filtros', async () => {
-    const total = await p.locator(t('item-lancamento')).count();
+    const total = await p.locator(L('item-lancamento')).count();
     await p.fill(t('busca'), 'aluguel');
-    await contar(p, t('item-lancamento'), 1);
+    await contar(p, L('item-lancamento'), 1);
     assert.match(await texto(p, 'contagem-filtro'), new RegExp('Mostrando 1 de ' + total));
     await p.fill(t('busca'), 'zzz');
     assert.match(await p.locator(t('lista')).innerText(), /Nada encontrado/);
     await p.click(t('busca-limpar'));
-    await contar(p, t('item-lancamento'), total);
+    await contar(p, L('item-lancamento'), total);
     await p.click(t('filtro-saídas'));
     await p.waitForSelector(t('contagem-filtro'));
-    const saidas = await p.locator(t('item-lancamento')).count();
+    const saidas = await p.locator(L('item-lancamento')).count();
     await p.click(t('filtro-entradas'));
     await p.waitForFunction((n) => !document.querySelector('[data-testid="contagem-filtro"]').innerText.includes('Mostrando ' + n + ' de'), saidas);
-    const entradas = await p.locator(t('item-lancamento')).count();
+    const entradas = await p.locator(L('item-lancamento')).count();
     assert.strictEqual(saidas + entradas, total);
     await p.click(t('filtro-todos'));
-    await contar(p, t('item-lancamento'), total);
+    await contar(p, L('item-lancamento'), total);
     await p.fill(t('busca'), '131,17');
-    await contar(p, t('item-lancamento'), 1);
+    await contar(p, L('item-lancamento'), 1);
     await p.click(t('busca-limpar'));
-    await contar(p, t('item-lancamento'), total);
+    await contar(p, L('item-lancamento'), total);
   });
 
   await passo('excluir pede confirmação; cancelar mantém; confirmar tira da lista e dos totais', async () => {
-    const total = await p.locator(t('item-lancamento')).count();
+    const total = await p.locator(L('item-lancamento')).count();
     const saidasAntes = reais(await texto(p, 'r-saidas'));
-    const item = p.locator(t('item-lancamento') + ':has-text("Luz")').first();
-    await item.locator(t('item-excluir')).click();
+    const item = p.locator(L('item-lancamento') + ':has-text("Luz")').first();
+    await item.click({ delay: 900 }); // segurar o dedo pede para excluir
     await p.waitForSelector(t('pergunta'));
     assert.match(await texto(p, 'pergunta'), /Excluir este lançamento\?[\s\S]*Luz[\s\S]*R\$ 131,17/);
     await print(p, '07-confirmar-exclusao');
     await p.click(t('pergunta-cancelar'));
-    assert.strictEqual(await p.locator(t('item-lancamento')).count(), total);
-    await item.locator(t('item-excluir')).click();
+    assert.strictEqual(await p.locator(L('item-lancamento')).count(), total);
+    await item.click(); // tocar abre o detalhe, que também tem o botão Excluir
+    await p.waitForSelector(t('tela-detalhe'));
+    await p.click(t('detalhe-excluir'));
     await p.click(t('pergunta-confirmar'));
+    await p.waitForSelector(t('tela-lancamentos'));
     assert.match(await aviso(p), /excluído/);
-    await contar(p, t('item-lancamento'), total - 1);
+    await contar(p, L('item-lancamento'), total - 1);
     assert.strictEqual(reais(await texto(p, 'r-saidas')), saidasAntes - 13117);
     await p.waitForFunction(() => Array.from(window.__ADRER_DEMO__.servidor.lancamentos.values()).some((l) => l.excluidoEm && l.excluidoPor === 'demo@adrer.app'));
   });
 
   await passo('detalhe do lançamento: ver e alterar', async () => {
-    await p.locator(t('item-lancamento') + ':has-text("Novo Irmão")').click();
+    await p.locator(L('item-lancamento') + ':has-text("Novo Irmão")').click();
     await p.waitForSelector(t('tela-detalhe'));
     assert.match(await texto(p, 'detalhe-valor'), /\+ R\$ 50,00/);
     assert.match(await texto(p, 'detalhe-titulo'), /Dízimo · Novo Irmão/);
@@ -321,7 +348,7 @@ function reais(texto) {
     assert.deepStrictEqual(livro.SheetNames, ['Lançamentos', 'Resumo']);
     const linhas = XLSX.utils.sheet_to_json(livro.Sheets['Lançamentos'], { header: 1 });
     assert.strictEqual(linhas[0][10], 'Responsável');
-    assert.strictEqual(linhas.length - 1, await p.locator(t('item-lancamento')).count());
+    assert.strictEqual(linhas.length - 1, await p.locator(L('item-lancamento')).count());
     const resumo = XLSX.utils.sheet_to_json(livro.Sheets.Resumo, { header: 1 });
     assert.strictEqual(resumo[9][0], 'Saldo em caixa');
     assert.strictEqual(Math.round(resumo[9][1] * 100), reais(await texto(p, 'r-caixa')));
@@ -347,10 +374,10 @@ function reais(texto) {
     assert.match(await texto(p, 'mes-atual'), /Novembro de 2026/, 'mesmo mês da outra tela');
     assert.strictEqual(reais(await texto(p, 'k-entradas')), entradas);
     assert.strictEqual(reais(await texto(p, 'k-caixa')), caixa);
-    for (const g of ['g-linha', 'g-barras', 'g-despesas', 'g-comparativo']) {
+    for (const g of ['g-linha', 'g-rosca', 'g-despesas', 'g-comparativo']) {
       assert.ok(await p.locator(t(g) + ' svg').count(), 'gráfico ' + g);
     }
-    assert.match(await p.locator(t('g-barras')).innerText(), /Dízimos[\s\S]*Ofertas[\s\S]*Saídas/);
+    assert.match(await p.locator(t('g-rosca')).innerText(), /Dízimos[\s\S]*Ofertas[\s\S]*Saídas/);
     assert.strictEqual(await p.locator('[data-testid^="comp-"]').count(), 6);
     assert.strictEqual(reais((await texto(p, 'comp-2026-11')).split('\n').pop()), caixa);
     await print(p, '09-dashboard', true);
@@ -370,6 +397,25 @@ function reais(texto) {
     assert.match(await relatorio.locator('body').innerText(), /Dashboard financeiro - Novembro de 2026[\s\S]*Caixa ao longo do mês[\s\S]*Maiores despesas[\s\S]*Últimos meses/);
     assert.strictEqual(await relatorio.locator('svg').count(), 4);
     await relatorio.pdf({ path: path.join(PRINTS, 'dashboard-exemplo.pdf'), format: 'A4', printBackground: true }).catch(() => {});
+    await relatorio.close();
+  });
+
+  await passo('PDF para a contabilidade: origens = aplicações, só com despesas reais', async () => {
+    const entradas = reais(await texto(p, 'k-entradas'));
+    const saidas = reais(await texto(p, 'k-saidas'));
+    const espera = p.context().waitForEvent('page'); espera.catch(() => {});
+    await p.click(t('exportar-contabilidade'));
+    const relatorio = await espera;
+    await relatorio.waitForLoadState();
+    const corpo = await relatorio.locator('body').innerText();
+    assert.match(corpo, /Demonstrativo de origens e aplicações - Novembro de 2026/);
+    const brl = (c) => 'R\\$ ' + (c / 100).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    const total = Math.max(entradas, saidas);
+    assert.match(corpo, new RegExp('Total das origens ' + brl(total) + ' = Total das aplicações ' + brl(total)));
+    assert.match(corpo, /Aluguel/);
+    assert.doesNotMatch(corpo, /Outros|Outras despesas/);
+    if (entradas > saidas) assert.match(corpo, new RegExp('Saldo do mês mantido em caixa \\(superávit\\)\\s*' + brl(entradas - saidas)));
+    await relatorio.pdf({ path: path.join(PRINTS, 'contabilidade-exemplo.pdf'), format: 'A4', printBackground: true }).catch(() => {});
     await relatorio.close();
   });
 
@@ -500,7 +546,7 @@ function reais(texto) {
 
   await passo('telas pequenas (360 px) e modo escuro do sistema: sem rolagem lateral', async () => {
     const q = await abrir({ escuro: true, dispositivo: { viewport: { width: 360, height: 740 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 } });
-    for (const [aba, tela] of [['aba-lancamentos', 'tela-lancamentos'], ['aba-dashboard', 'tela-dashboard'], ['aba-mais', 'tela-mais'], ['aba-novo', 'tela-novo']]) {
+    for (const [aba, tela] of [['aba-inicio', 'tela-inicio'], ['aba-lancamentos', 'tela-lancamentos'], ['aba-dashboard', 'tela-dashboard'], ['aba-mais', 'tela-mais'], ['aba-novo', 'tela-novo']]) {
       await q.click(t(aba));
       await q.waitForSelector(t(tela));
       await q.waitForTimeout(250);

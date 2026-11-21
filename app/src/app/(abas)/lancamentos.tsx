@@ -3,16 +3,17 @@ import { router } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import { nomeMes } from '@/core/datas';
+import { hojeISO, nomeMes, rotuloDia } from '@/core/datas';
 import { formatarComSinal, formatarReais } from '@/core/dinheiro';
 import { gerarExcel, htmlRelatorio, nomeArquivo } from '@/core/relatorios';
-import { filtrar, ordenarRecentes } from '@/core/totais';
+import { agruparPorDia, filtrar, ordenarRecentes } from '@/core/totais';
 import { NOME_APP } from '@/config';
 import { useCaixa, usePodeEscrever } from '@/dados/hooks';
 import { excluirComConfirmacao, tentar } from '@/ui/acoes';
 import { Botao, CampoTexto, Cartao, LinhaValor, Texto, Vazio } from '@/ui/base';
 import { cabecalhoRelatorio, compartilharExcel, compartilharPdf } from '@/ui/exportar';
-import { ItemLancamento } from '@/ui/ItemLancamento';
+import { GrupoDeLancamentos, ItemLancamento } from '@/ui/ItemLancamento';
+import { ESPACO_DO_MENU } from '@/ui/MenuFlutuante';
 import { useMes } from '@/ui/mes';
 import { SeletorMes } from '@/ui/SeletorMes';
 import { Cabecalho, Corpo } from '@/ui/Tela';
@@ -33,6 +34,8 @@ export default function Lancamentos() {
 
   const doMes = useMemo(() => ordenarRecentes(caixa.porMes.get(mes) ?? []), [caixa, mes]);
   const visiveis = useMemo(() => filtrar(doMes, { busca, tipo }), [doMes, busca, tipo]);
+  const dias = useMemo(() => agruparPorDia(visiveis), [visiveis]);
+  const hoje = hojeISO();
   const resumo = caixa.resumoDoMes(mes);
   const filtrando = !!busca.trim() || !!tipo;
 
@@ -51,7 +54,7 @@ export default function Lancamentos() {
   return (
     <View style={{ flex: 1 }} testID="tela-lancamentos">
       <Cabecalho />
-      <Corpo puxarParaAtualizar>
+      <Corpo puxarParaAtualizar espacoInferior={ESPACO_DO_MENU}>
         <Texto tipo="titulo">Lançamentos</Texto>
         <SeletorMes />
 
@@ -93,23 +96,36 @@ export default function Lancamentos() {
           </View>
         </View>
 
-        <View style={{ gap: ESPACO.p + 2 }} testID="lista">
+        <View style={{ gap: ESPACO.p }} testID="lista">
           {filtrando && doMes.length ? (
             <Texto tipo="pequeno" suave testID="contagem-filtro">Mostrando {visiveis.length} de {doMes.length} lançamentos.</Texto>
           ) : null}
-          {visiveis.map((l) => (
-            <ItemLancamento
-              key={l.id}
-              l={l}
-              aoAbrir={() => router.push({ pathname: '/lancamento/[id]', params: { id: l.id } })}
-              aoExcluir={podeEscrever ? () => void excluirComConfirmacao(l) : undefined}
-            />
+          {dias.map((dia) => (
+            <View key={dia.data} style={{ gap: 6 }} testID="grupo-dia">
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4, paddingTop: ESPACO.p }}>
+                <Text style={{ fontFamily: FONTE.preta, fontSize: 12, letterSpacing: 0.5, color: c.textoSuave, textTransform: 'uppercase' }}>{rotuloDia(dia.data, hoje)}</Text>
+                <Text style={{ fontFamily: FONTE.forte, fontSize: 12.5, color: c.textoSuave, fontVariant: ['tabular-nums'] }}>{formatarComSinal(dia.resultado)}</Text>
+              </View>
+              <GrupoDeLancamentos>
+                {dia.itens.map((l) => (
+                  <ItemLancamento
+                    key={l.id}
+                    l={l}
+                    emGrupo
+                    aoAbrir={() => router.push({ pathname: '/lancamento/[id]', params: { id: l.id } })}
+                    aoSegurar={podeEscrever ? () => void excluirComConfirmacao(l) : undefined}
+                  />
+                ))}
+              </GrupoDeLancamentos>
+            </View>
           ))}
           {!doMes.length ? (
             <Vazio icone="document-text-outline" titulo={'Nenhum lançamento em ' + nomeMes(mes)} texto="Os lançamentos deste mês aparecem aqui." />
           ) : !visiveis.length ? (
             <Vazio icone="search-outline" titulo="Nada encontrado" texto="Tente outra palavra ou limpe os filtros." />
-          ) : null}
+          ) : (
+            <Texto tipo="mini" suave style={{ textAlign: 'center' }}>Toque num lançamento para ver, alterar ou excluir.</Texto>
+          )}
         </View>
 
         <Cartao testID="resumo">

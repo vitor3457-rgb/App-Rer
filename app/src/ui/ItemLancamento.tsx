@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import { MESES } from '@/core/datas';
 import { formatarReais } from '@/core/dinheiro';
 import { Lancamento } from '@/core/tipos';
 
@@ -13,35 +12,45 @@ export function tituloDoLancamento(l: Lancamento): string {
   return l.tipo === 'Entrada' ? l.categoria + (l.descricao ? ' · ' + l.descricao : '') : l.descricao || l.categoria;
 }
 
-/** Uma linha da lista: data, o que foi, quem lançou e o valor (verde = entrada, vermelho = saída). */
+/** "PIX · por Alex" */
+export function legendaPadrao(l: Lancamento): string {
+  return (l.formaPagamento ? l.formaPagamento + ' · ' : '') + 'por ' + l.responsavel;
+}
+
+/**
+ * Uma linha de lançamento: ícone (seta verde = entrada, vermelha = saída), o que foi,
+ * a legenda e o valor. `emGrupo`: fica dentro de um cartão com outros (sem fundo próprio).
+ * Tocar abre o detalhe; segurar o dedo pede para excluir.
+ */
 export function ItemLancamento({
-  l, aoAbrir, aoExcluir, mostrarAno,
-}: { l: Lancamento; aoAbrir?: () => void; aoExcluir?: () => void; mostrarAno?: boolean }) {
+  l, aoAbrir, aoSegurar, emGrupo, legenda,
+}: { l: Lancamento; aoAbrir?: () => void; aoSegurar?: () => void; emGrupo?: boolean; legenda?: string }) {
   const c = useCores();
   const entrada = l.tipo === 'Entrada';
   const cor = entrada ? c.entrada : c.saida;
-  const mes = (MESES[Number(l.dataReferencia.slice(5, 7)) - 1] ?? '').slice(0, 3).toLowerCase();
   return (
     <Pressable
       testID="item-lancamento"
       accessibilityRole="button"
       accessibilityLabel={`${tituloDoLancamento(l)}, ${entrada ? 'entrada' : 'saída'} de ${formatarReais(l.valorCentavos)}`}
-      disabled={!aoAbrir}
+      accessibilityHint={aoSegurar ? 'Toque para ver; segure para excluir' : undefined}
+      disabled={!aoAbrir && !aoSegurar}
       onPress={() => { toque.leve(); aoAbrir?.(); }}
-      style={({ pressed }) => ({
-        flexDirection: 'row', alignItems: 'center', gap: ESPACO.m, backgroundColor: c.cartao, borderRadius: RAIO.m,
-        borderLeftWidth: 5, borderLeftColor: cor, paddingVertical: 10, paddingLeft: ESPACO.m, paddingRight: aoExcluir ? 4 : ESPACO.m,
-        borderWidth: c.escuro ? 1 : 0, borderColor: c.borda, opacity: pressed ? 0.75 : 1,
-        boxShadow: c.escuro ? undefined : '0 1px 3px rgba(40,28,24,0.08)',
-      })}>
-      <View style={{ width: 40, alignItems: 'center' }}>
-        <Text style={{ fontFamily: FONTE.preta, fontSize: 20, lineHeight: 22, color: c.texto }}>{l.dataReferencia.slice(8, 10)}</Text>
-        <Text style={{ fontFamily: FONTE.media, fontSize: 12, color: c.textoSuave }}>{mes}{mostrarAno ? '/' + l.dataReferencia.slice(2, 4) : ''}</Text>
+      onLongPress={aoSegurar ? () => { toque.alerta(); aoSegurar(); } : undefined}
+      style={({ pressed }) => [
+        { flexDirection: 'row', alignItems: 'center', gap: ESPACO.m, paddingVertical: 11, opacity: pressed ? 0.7 : 1 },
+        emGrupo ? null : {
+          backgroundColor: c.cartao, borderRadius: RAIO.m, paddingHorizontal: ESPACO.m,
+          borderWidth: c.escuro ? 1 : 0, borderColor: c.borda, boxShadow: c.escuro ? undefined : '0 2px 10px rgba(40,28,24,0.06)',
+        },
+      ]}>
+      <View style={{ width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: entrada ? c.entradaSuave : c.saidaSuave }}>
+        <Ionicons name={entrada ? 'arrow-up' : 'arrow-down'} size={20} color={cor} />
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={{ fontFamily: FONTE.forte, fontSize: 16, lineHeight: 21, color: c.texto }} numberOfLines={2}>{tituloDoLancamento(l)}</Text>
+        <Text style={{ fontFamily: FONTE.forte, fontSize: 15.5, lineHeight: 20, color: c.texto }} numberOfLines={2}>{tituloDoLancamento(l)}</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          <Text style={{ fontFamily: FONTE.normal, fontSize: 13, color: c.textoSuave }}>{entrada ? 'Entrada' : 'Saída'} · por {l.responsavel}</Text>
+          <Text style={{ fontFamily: FONTE.normal, fontSize: 12.5, color: c.textoSuave }} numberOfLines={1}>{legenda ?? legendaPadrao(l)}</Text>
           {l.comprovante ? <Ionicons name="camera" size={13} color={c.textoSuave} accessibilityLabel="Tem foto" /> : null}
           {l.pendente ? (
             <View testID="item-pendente" style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: c.avisoSuave, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 1 }}>
@@ -51,20 +60,25 @@ export function ItemLancamento({
           ) : null}
         </View>
       </View>
-      <Text testID="item-valor" style={{ fontFamily: FONTE.preta, fontSize: 16, color: cor, fontVariant: ['tabular-nums'] }}>
+      <Text testID="item-valor" style={{ fontFamily: FONTE.preta, fontSize: 15.5, color: cor, fontVariant: ['tabular-nums'] }}>
         {entrada ? '+ ' : '- '}{formatarReais(l.valorCentavos)}
       </Text>
-      {aoExcluir ? (
-        <Pressable
-          testID="item-excluir"
-          accessibilityRole="button"
-          accessibilityLabel={'Excluir ' + tituloDoLancamento(l)}
-          hitSlop={6}
-          onPress={() => { toque.leve(); aoExcluir(); }}
-          style={{ width: 40, height: 44, alignItems: 'center', justifyContent: 'center' }}>
-          <Ionicons name="trash-outline" size={20} color={c.textoSuave} />
-        </Pressable>
-      ) : null}
     </Pressable>
+  );
+}
+
+/** Cartão com vários lançamentos, separados por uma linha fina. */
+export function GrupoDeLancamentos({ children, testID }: { children: React.ReactNode; testID?: string }) {
+  const c = useCores();
+  const itens = React.Children.toArray(children);
+  return (
+    <View testID={testID} style={{
+      backgroundColor: c.cartao, borderRadius: RAIO.g, paddingHorizontal: ESPACO.m + 2, paddingVertical: 2,
+      borderWidth: c.escuro ? 1 : 0, borderColor: c.borda, boxShadow: c.escuro ? undefined : '0 2px 10px rgba(40,28,24,0.06)',
+    }}>
+      {itens.map((item, i) => (
+        <View key={i} style={i ? { borderTopWidth: 1, borderTopColor: c.escuro ? c.borda : '#F0EBE9' } : undefined}>{item}</View>
+      ))}
+    </View>
   );
 }
