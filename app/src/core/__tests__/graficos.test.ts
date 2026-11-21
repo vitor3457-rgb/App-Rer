@@ -1,4 +1,4 @@
-import { PALETA_CLARA, graficoBarras, graficoComparativo, graficoLinha } from '../graficos';
+import { PALETA_CLARA, graficoBarras, graficoComparativo, graficoLinha, graficoLinhaMini, graficoRosca } from '../graficos';
 import { agruparPorMes, calcularCaixa, serieDiaria } from '../totais';
 import { lanc, saida } from './fabrica';
 
@@ -30,6 +30,7 @@ test('linha: começa no saldo anterior e mostra o saldo final', () => {
   expect(g.xml).toContain('R$ 500,00');
   expect(g.xml).toContain('dia 5');
   expect(g.xml.match(/<circle /g)).toHaveLength(2);
+  expect(g.xml).toMatch(/linearGradient id="caixa\d+"/);
   expect(g.px(0)).toBeLessThan(g.px(4));
   expect(g.py(70000)).toBeLessThan(g.py(0)); // valores maiores ficam mais acima
 });
@@ -49,4 +50,26 @@ test('comparativo: uma dupla de barras por mês e legenda', () => {
   expect(g.xml).toContain('nov/26');
   expect(g.xml.match(/<path /g)).toHaveLength(4); // out e nov têm entradas e saídas; set não tem nada
   expect(g.xml).not.toContain('NaN');
+});
+
+test('rosca: uma fatia por valor, legenda com os valores escritos e centro', () => {
+  const g = graficoRosca([
+    { rotulo: 'Dízimos', centavos: 158000, cor: '#1A7A38' },
+    { rotulo: 'Ofertas', centavos: 39275, cor: '#5FB37A' },
+    { rotulo: 'Saídas', centavos: 0, cor: '#C0262D' },
+  ], { titulo: 'resultado', valor: '+ 1.372,75' }, PALETA_CLARA);
+  expect(g.xml.match(/stroke-dasharray/g)).toHaveLength(2); // valor zero não desenha fatia
+  expect(g.xml).toContain('R$ 1.580,00');
+  expect(g.xml).toContain('R$ 0,00');
+  expect(g.xml).toContain('+ 1.372,75');
+  expect(g.xml).not.toContain('NaN');
+  expect(graficoRosca([], { titulo: 'x', valor: 'y' }, PALETA_CLARA).xml).not.toContain('NaN');
+});
+
+test('linha pequena: degradê com nome único a cada gráfico', () => {
+  const dias = [{ dia: 1, entrou: 0, saiu: 0, saldo: 100, temLancamento: true }, { dia: 2, entrou: 0, saiu: 0, saldo: 300, temLancamento: true }];
+  const a = graficoLinhaMini(dias, PALETA_CLARA).xml.match(/id="(mini\d+)"/)![1];
+  const b = graficoLinhaMini(dias, PALETA_CLARA).xml.match(/id="(mini\d+)"/)![1];
+  expect(a).not.toBe(b);
+  expect(graficoLinhaMini([dias[0]], PALETA_CLARA).xml).not.toContain('NaN');
 });

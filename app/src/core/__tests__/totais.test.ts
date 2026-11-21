@@ -1,6 +1,6 @@
 import {
   agruparPorMes, calcularCaixa, despesasPrincipais, filtrar, historicoDoMembro, maisUsados, ordenarRecentes,
-  serieDiaria, sugestoesDeContribuintes, totalizar,
+  agruparPorDia, demonstrativoContabil, serieDiaria, sugestoesDeContribuintes, totalizar,
 } from '../totais';
 import { lanc, membro, saida } from './fabrica';
 
@@ -133,6 +133,48 @@ test('despesasPrincipais agrupa por descrição e junta o resto em "Outras"', ()
   ]);
   expect(despesasPrincipais([saida('A', 1), saida('B', 2)], 4)).toHaveLength(2);
   expect(despesasPrincipais([lanc()], 4)).toEqual([]);
+});
+
+test('agruparPorDia: dias do mais recente para o mais antigo, com o resultado de cada dia', () => {
+  const g = agruparPorDia([
+    lanc({ dataReferencia: '2026-11-14', valorCentavos: 15000 }),
+    saida('Água', 16758, { dataReferencia: '2026-11-15' }),
+    lanc({ dataReferencia: '2026-11-15', valorCentavos: 10000 }),
+    lanc({ dataReferencia: '2026-11-16', valorCentavos: 6890 }),
+  ]);
+  expect(g.map((d) => [d.data, d.itens.length, d.resultado])).toEqual([
+    ['2026-11-16', 1, 6890], ['2026-11-15', 2, -6758], ['2026-11-14', 1, 15000],
+  ]);
+  expect(agruparPorDia([])).toEqual([]);
+});
+
+describe('demonstrativo para a contabilidade (origens = aplicações, sem inventar despesa)', () => {
+  test('sobrou dinheiro: a sobra aparece como saldo mantido em caixa', () => {
+    const d = demonstrativoContabil([
+      lanc({ valorCentavos: 200000 }), lanc({ categoria: 'Oferta', descricao: '', valorCentavos: 55075 }),
+      saida('Aluguel', 80000), saida('Luz', 12000), saida('luz', 3000),
+    ], '2026-11');
+    expect(d).toMatchObject({
+      dizimos: 200000, ofertas: 55075, entradas: 255075, usoSaldoAnterior: 0, totalOrigens: 255075,
+      totalDespesas: 95000, saldoMantido: 160075, totalAplicacoes: 255075,
+    });
+    expect(d.despesas).toEqual([{ rotulo: 'Aluguel', centavos: 80000 }, { rotulo: 'Luz', centavos: 15000 }]);
+    expect(d.totalOrigens).toBe(d.totalAplicacoes);
+  });
+
+  test('gastou mais do que entrou: a diferença vem do saldo de meses anteriores', () => {
+    const d = demonstrativoContabil([lanc({ valorCentavos: 10000 }), saida('Reforma', 30000)], '2026-11');
+    expect(d).toMatchObject({ entradas: 10000, usoSaldoAnterior: 20000, totalOrigens: 30000, totalDespesas: 30000, saldoMantido: 0, totalAplicacoes: 30000 });
+  });
+
+  test('não junta despesas em "Outras": todas aparecem pelo nome', () => {
+    const muitas = Array.from({ length: 9 }, (_, i) => saida('Despesa ' + i, 100 + i));
+    expect(demonstrativoContabil(muitas, '2026-11').despesas).toHaveLength(9);
+  });
+
+  test('mês vazio: tudo zero', () => {
+    expect(demonstrativoContabil([], '2026-12')).toMatchObject({ totalOrigens: 0, totalAplicacoes: 0, despesas: [] });
+  });
 });
 
 test('maisUsados ordena pela frequência, sem diferenciar acento/maiúscula', () => {

@@ -134,6 +134,69 @@ export function filtrar(lancamentos: Lancamento[], filtro: Filtro): Lancamento[]
   });
 }
 
+export interface GrupoDia {
+  data: string;
+  itens: Lancamento[];
+  /** entradas - saídas do dia */
+  resultado: number;
+}
+
+/** Junta os lançamentos por dia, do mais recente para o mais antigo (para a lista). */
+export function agruparPorDia(lancamentos: Lancamento[]): GrupoDia[] {
+  const grupos: GrupoDia[] = [];
+  for (const l of ordenarRecentes(lancamentos)) {
+    let g = grupos[grupos.length - 1];
+    if (!g || g.data !== l.dataReferencia) {
+      g = { data: l.dataReferencia, itens: [], resultado: 0 };
+      grupos.push(g);
+    }
+    g.itens.push(l);
+    g.resultado += (l.tipo === 'Entrada' ? 1 : -1) * l.valorCentavos;
+  }
+  return grupos;
+}
+
+/**
+ * DEMONSTRATIVO DE ORIGENS E APLICAÇÕES DO MÊS (relatório para a contabilidade).
+ * Origens = dízimos + ofertas (+ uso de saldo de meses anteriores, se as despesas passarem das entradas).
+ * Aplicações = despesas REAIS do mês + o que sobrou e ficou guardado em caixa (superávit).
+ * Os dois totais são sempre iguais, sem inventar despesa nenhuma.
+ */
+export interface Demonstrativo {
+  mes: string;
+  dizimos: number;
+  ofertas: number;
+  entradas: number;
+  /** Quando as despesas passam das entradas, a diferença saiu do caixa de meses anteriores. */
+  usoSaldoAnterior: number;
+  totalOrigens: number;
+  /** Despesas reais, agrupadas pela descrição, da maior para a menor. */
+  despesas: Fatia[];
+  totalDespesas: number;
+  /** Sobra do mês que ficou guardada no caixa (não é despesa). */
+  saldoMantido: number;
+  totalAplicacoes: number;
+}
+
+export function demonstrativoContabil(doMes: Lancamento[], mes: string): Demonstrativo {
+  const t = totalizar(doMes);
+  const despesas = despesasPrincipais(doMes, 999);
+  const saldoMantido = Math.max(0, t.entradas - t.saidas);
+  const usoSaldoAnterior = Math.max(0, t.saidas - t.entradas);
+  return {
+    mes,
+    dizimos: t.dizimos,
+    ofertas: t.ofertas,
+    entradas: t.entradas,
+    usoSaldoAnterior,
+    totalOrigens: t.entradas + usoSaldoAnterior,
+    despesas,
+    totalDespesas: t.saidas,
+    saldoMantido,
+    totalAplicacoes: t.saidas + saldoMantido,
+  };
+}
+
 export interface Dia {
   dia: number;
   entrou: number;

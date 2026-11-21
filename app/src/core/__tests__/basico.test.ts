@@ -1,4 +1,5 @@
 import {
+  primeiroNome, rotuloDia,
   dataBR, dataPorExtenso, diasNoMes, ehDataValida, hojeISO, mesDe, nomeMes, nomeMesCurto, somarDias, somarMeses,
 } from '../datas';
 import { aplicarDigitacao, digitosParaCentavos, formatarComSinal, formatarReais, lerValorPlanilha, reaisCurto } from '../dinheiro';
@@ -72,6 +73,15 @@ describe('datas', () => {
     expect(dataBR('2026-11-08')).toBe('08/11/2026');
     expect(dataPorExtenso('2026-11-08')).toBe('domingo, 8 de novembro de 2026');
     expect(dataPorExtenso('xx')).toBe('');
+  });
+
+  test('título dos dias da lista', () => {
+    expect(rotuloDia('2026-11-16', '2026-11-16')).toBe('Hoje');
+    expect(rotuloDia('2026-11-15', '2026-11-16')).toBe('Ontem');
+    expect(rotuloDia('2026-11-14', '2026-11-16')).toBe('Sábado, 14 de novembro');
+    expect(rotuloDia('2026-11-09', '2026-11-16')).toBe('Segunda, 9 de novembro');
+    expect(rotuloDia('2025-12-31', '2026-01-02')).toBe('Quarta, 31 de dezembro de 2025');
+    expect(primeiroNome('  Vitor Gabriel ')).toBe('Vitor');
   });
 
   test('contas com meses e dias', () => {

@@ -87,6 +87,23 @@ export function primeiroDia(mes: string): string {
   return mes + '-01';
 }
 
+/** Título de um dia na lista: "Hoje", "Ontem" ou "Sábado, 14 de novembro" (com o ano se for outro). */
+export function rotuloDia(iso: string, hoje: string): string {
+  if (iso === hoje) return 'Hoje';
+  if (iso === somarDias(hoje, -1)) return 'Ontem';
+  const p = partes(iso);
+  if (!p) return iso;
+  const d = new Date(p.ano, p.mes - 1, p.dia);
+  const nome = SEMANA[d.getDay()].replace('-feira', '');
+  const texto = nome.charAt(0).toUpperCase() + nome.slice(1) + ', ' + p.dia + ' de ' + MESES[p.mes - 1].toLowerCase();
+  return p.ano === Number(hoje.slice(0, 4)) ? texto : texto + ' de ' + p.ano;
+}
+
+/** "Vitor Gabriel" -> "Vitor" */
+export function primeiroNome(nome: string): string {
+  return String(nome ?? '').trim().split(/\s+/)[0] ?? '';
+}
+
 /** "2026-11-08T14:03:00Z" -> "08/11/2026 11:03" (no fuso do celular) */
 export function dataHoraBR(iso: string): string {
   const d = new Date(iso);

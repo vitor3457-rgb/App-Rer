@@ -17,16 +17,20 @@ export interface Paleta {
   saida: string;
   linha: string;
   area: string;
+  /** Verde mais claro (ofertas, ao lado dos dízimos). */
+  entradaClara: string;
+  /** Cor neutra do saldo guardado em caixa. */
+  reserva: string;
 }
 
 export const PALETA_CLARA: Paleta = {
   fundo: '#FFFFFF', tinta: '#1C1716', suave: '#6B5F5C', grade: '#E8E2E0', zero: '#9A8F8C',
-  entrada: '#1A7A38', saida: '#C0262D', linha: '#C45C00', area: '#FF8708',
+  entrada: '#1A7A38', saida: '#C0262D', linha: '#C45C00', area: '#FF8708', entradaClara: '#5FB37A', reserva: '#6B5F5C',
 };
 
 export const PALETA_ESCURA: Paleta = {
   fundo: '#211D1B', tinta: '#F6F1EE', suave: '#B8ABA6', grade: '#3A3330', zero: '#8A7E79',
-  entrada: '#5FD08A', saida: '#FF7B7B', linha: '#FFA94D', area: '#FF8708',
+  entrada: '#5FD08A', saida: '#FF7B7B', linha: '#FFA94D', area: '#FF8708', entradaClara: '#2F8F55', reserva: '#B8ABA6',
 };
 
 export interface Grafico {
@@ -36,6 +40,32 @@ export interface Grafico {
 }
 
 const FONTE = 'Inter, Roboto, Helvetica, Arial, sans-serif';
+
+/** Cada degradê precisa de um nome único (vários gráficos podem estar na mesma página). */
+let serieIds = 0;
+function novoId(prefixo: string): string {
+  serieIds = (serieIds + 1) % 1_000_000;
+  return prefixo + serieIds;
+}
+
+function degradeVertical(id: string, cor: string, opacidadeTopo: number): string {
+  return `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">` +
+    `<stop offset="0" stop-color="${cor}" stop-opacity="${opacidadeTopo}"/>` +
+    `<stop offset="1" stop-color="${cor}" stop-opacity="0"/></linearGradient></defs>`;
+}
+
+/** Caminho suave (curvas) passando pelos pontos. */
+function curva(pontos: [number, number][]): string {
+  if (!pontos.length) return '';
+  let d = `M${pontos[0][0].toFixed(1)},${pontos[0][1].toFixed(1)}`;
+  for (let i = 1; i < pontos.length; i++) {
+    const [x0, y0] = pontos[i - 1];
+    const [x1, y1] = pontos[i];
+    const meio = (x0 + x1) / 2;
+    d += ` C${meio.toFixed(1)},${y0.toFixed(1)} ${meio.toFixed(1)},${y1.toFixed(1)} ${x1.toFixed(1)},${y1.toFixed(1)}`;
+  }
+  return d;
+}
 
 function esc(texto: string): string {
   return String(texto).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -122,13 +152,16 @@ export function graficoLinha(dias: Dia[], p: Paleta): GraficoLinha {
   );
   for (const d of marcasDia) c += texto(px(d - 1), A - 8, 'dia ' + d, `font-size="11" text-anchor="middle" fill="${p.suave}"`);
 
-  const pontos = dias.map((d, i) => px(i).toFixed(1) + ',' + py(d.saldo).toFixed(1));
-  if (dias.length === 1) pontos.push(px(1).toFixed(1) + ',' + py(dias[0].saldo).toFixed(1));
+  const pontos: [number, number][] = dias.map((d, i) => [px(i), py(d.saldo)]);
+  if (dias.length === 1) pontos.push([px(1), py(dias[0].saldo)]);
   const zeroY = py(0).toFixed(1);
   const ultimoX = px(Math.max(dias.length - 1, 1)).toFixed(1);
   if (pontos.length) {
-    c += `<polygon points="${px(0).toFixed(1)},${zeroY} ${pontos.join(' ')} ${ultimoX},${zeroY}" fill="${p.area}" fill-opacity="0.16"/>`;
-    c += `<polyline points="${pontos.join(' ')}" fill="none" stroke="${p.linha}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+    const id = novoId('caixa');
+    const linha = curva(pontos);
+    c += degradeVertical(id, p.area, 0.38);
+    c += `<path d="${linha} L${ultimoX},${zeroY} L${px(0).toFixed(1)},${zeroY} Z" fill="url(#${id})"/>`;
+    c += `<path d="${linha}" fill="none" stroke="${p.linha}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`;
   }
   dias.forEach((d, i) => {
     if (d.temLancamento) c += `<circle cx="${px(i).toFixed(1)}" cy="${py(d.saldo).toFixed(1)}" r="4" fill="${p.linha}" stroke="${p.fundo}" stroke-width="2"/>`;
@@ -171,6 +204,67 @@ export function graficoComparativo(meses: ResumoMes[], p: Paleta, mesDestacado?:
     c += barra(centro + 1, m.saidas, p.saida);
     const destaque = m.mes === mesDestacado;
     c += texto(centro, A - 8, nomeMesCurto(m.mes), `font-size="11" text-anchor="middle" font-weight="${destaque ? 700 : 400}" fill="${destaque ? p.tinta : p.suave}"`);
+  });
+  return svg(L, A, c, p);
+}
+
+/** Versão pequena da linha do caixa (tela inicial): só a curva com degradê e o último valor marcado. */
+export function graficoLinhaMini(dias: Dia[], p: Paleta): Grafico {
+  const L = 320, A = 90, margem = 8;
+  const valores = dias.map((d) => d.saldo);
+  let minimo = Math.min(...valores, 0);
+  let maximo = Math.max(...valores, 0);
+  if (maximo === minimo) { maximo += 1; minimo -= 1; }
+  const n = Math.max(dias.length, 2);
+  const px = (i: number) => margem + (i / (n - 1)) * (L - 2 * margem);
+  const py = (v: number) => margem + (1 - (v - minimo) / (maximo - minimo)) * (A - 2 * margem);
+  const pontos: [number, number][] = dias.map((d, i) => [px(i), py(d.saldo)]);
+  if (dias.length === 1) pontos.push([px(1), py(dias[0].saldo)]);
+  let c = '';
+  if (pontos.length) {
+    const id = novoId('mini');
+    const linha = curva(pontos);
+    const ultimo = pontos[pontos.length - 1];
+    c += degradeVertical(id, p.area, 0.38);
+    c += `<path d="${linha} L${ultimo[0].toFixed(1)},${A} L${pontos[0][0].toFixed(1)},${A} Z" fill="url(#${id})"/>`;
+    c += `<path d="${linha}" fill="none" stroke="${p.linha}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`;
+    c += `<circle cx="${ultimo[0].toFixed(1)}" cy="${ultimo[1].toFixed(1)}" r="5" fill="${p.linha}" stroke="${p.fundo}" stroke-width="2"/>`;
+  }
+  return svg(L, A, c, p);
+}
+
+export interface FatiaRosca {
+  rotulo: string;
+  centavos: number;
+  cor: string;
+}
+
+/** Gráfico de rosca com legenda ao lado (valores escritos, a cor nunca é a única informação). */
+export function graficoRosca(fatias: FatiaRosca[], centro: { titulo: string; valor: string; cor?: string }, p: Paleta): Grafico {
+  const L = 360, A = 150, cx = 72, cy = 75, raio = 52, espessura = 20;
+  const total = fatias.reduce((s, f) => s + Math.max(0, f.centavos), 0);
+  const volta = 2 * Math.PI * raio;
+  let c = `<circle cx="${cx}" cy="${cy}" r="${raio}" fill="none" stroke="${p.grade}" stroke-width="${espessura}"/>`;
+  let andado = 0;
+  const visiveis = fatias.filter((f) => f.centavos > 0);
+  for (const f of visiveis) {
+    const parte = (f.centavos / total) * volta;
+    // 2 unidades de folga entre as fatias (quando há mais de uma)
+    const tamanho = Math.max(0.5, parte - (visiveis.length > 1 ? 2 : 0));
+    c += `<circle cx="${cx}" cy="${cy}" r="${raio}" fill="none" stroke="${f.cor}" stroke-width="${espessura}" ` +
+      `stroke-dasharray="${tamanho.toFixed(2)} ${(volta - tamanho).toFixed(2)}" stroke-dashoffset="${(-andado).toFixed(2)}" ` +
+      `transform="rotate(-90 ${cx} ${cy})"/>`;
+    andado += parte;
+  }
+  c += texto(cx, cy - 4, centro.titulo, `font-size="11" text-anchor="middle" fill="${p.suave}"`);
+  c += texto(cx, cy + 13, centro.valor, `font-size="12.5" font-weight="700" text-anchor="middle" fill="${centro.cor ?? p.tinta}"`);
+  const x = 150;
+  const topo = cy - (fatias.length * 26) / 2 + 13;
+  fatias.forEach((f, i) => {
+    const y = topo + i * 26;
+    c += `<circle cx="${x + 6}" cy="${y - 4}" r="6" fill="${f.cor}"/>`;
+    c += texto(x + 18, y, cortar(f.rotulo, 20), `font-size="13" fill="${p.tinta}"`);
+    c += texto(L - 4, y, formatarReais(f.centavos), `font-size="13" font-weight="700" text-anchor="end" fill="${p.tinta}"`);
   });
   return svg(L, A, c, p);
 }

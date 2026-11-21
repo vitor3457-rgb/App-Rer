@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx';
 import { dataBR, dataHoraBR, nomeMes, nomeMesCurto } from './datas';
 import { formatarComSinal, formatarReais } from './dinheiro';
 import { Grafico } from './graficos';
-import { ResumoMes, ordenarAntigos } from './totais';
+import { Demonstrativo, ResumoMes, ordenarAntigos } from './totais';
 import { Lancamento } from './tipos';
 
 /** Relatórios do mês: planilha Excel e páginas (HTML) que viram PDF. */
@@ -18,7 +18,7 @@ export interface Cabecalho {
   geradoEm: string;
 }
 
-export function nomeArquivo(nomeApp: string, tipo: 'lancamentos' | 'relatorio' | 'dashboard', mes: string, extensao: string): string {
+export function nomeArquivo(nomeApp: string, tipo: 'lancamentos' | 'relatorio' | 'dashboard' | 'contabilidade', mes: string, extensao: string): string {
   return nomeApp.replace(/[^A-Za-z0-9_-]+/g, '') + '-' + tipo + '-' + mes + '.' + extensao;
 }
 
@@ -168,7 +168,8 @@ export function htmlRelatorio(itens: Lancamento[], resumo: ResumoMes, cab: Cabec
 
 export interface GraficosDashboard {
   linha: Grafico;
-  barras: Grafico;
+  /** De onde veio e para onde foi (rosca). */
+  rosca: Grafico;
   despesas: Grafico | null;
   comparativo: Grafico;
 }
@@ -187,7 +188,7 @@ ${quadro('Saldo em caixa', formatarReais(resumo.saldoCaixa), corSaldo(resumo.sal
 </div>
 <div class="bloco"><h2>Caixa ao longo do mês</h2><div class="grafico" style="width:78%;margin:0 auto">${g.linha.xml}</div></div>
 <div class="duas bloco">
-<div><h2>De onde veio e para onde foi</h2><div class="grafico">${g.barras.xml}</div></div>
+<div><h2>De onde veio e para onde foi</h2><div class="grafico">${g.rosca.xml}</div></div>
 <div><h2>Maiores despesas</h2><div class="grafico">${g.despesas ? g.despesas.xml : '<p>Nenhuma despesa neste mês.</p>'}</div></div>
 </div>
 <div class="bloco"><h2>Últimos meses</h2>
@@ -195,6 +196,62 @@ ${quadro('Saldo em caixa', formatarReais(resumo.saldoCaixa), corSaldo(resumo.sal
 <table class="lista"><thead><tr><th>Mês</th><th style="text-align:right">Entradas</th><th style="text-align:right">Saídas</th><th style="text-align:right">Resultado</th><th style="text-align:right">Saldo em caixa</th></tr></thead>
 <tbody>${linhasComparativo}</tbody></table></div>`;
   return pagina('Dashboard financeiro - ' + nomeMes(resumo.mes), cab, corpo);
+}
+
+export interface GraficosContabilidade {
+  /** Composição das aplicações: despesas x saldo mantido em caixa. */
+  rosca: Grafico;
+  /** Despesas do mês, uma barra por descrição. */
+  despesas: Grafico | null;
+}
+
+/**
+ * Relatório para a contabilidade: demonstrativo de ORIGENS e APLICAÇÕES do mês.
+ * Total das origens = total das aplicações. A sobra do mês aparece como "saldo mantido em caixa",
+ * nunca como despesa: o relatório só mostra o que aconteceu de verdade.
+ */
+export function htmlContabilidade(d: Demonstrativo, g: GraficosContabilidade, cab: Cabecalho): string {
+  const linha = (rotulo: string, valor: number, classe = '') => `<tr class="${classe}"><td>${esc(rotulo)}</td><td class="num">${formatarReais(valor)}</td></tr>`;
+  const quadro = (rotulo: string, valor: string, classe = '') => `<div class="quadro"><span>${rotulo}</span><strong class="${classe}">${valor}</strong></div>`;
+  const origens = [
+    linha('Dízimos', d.dizimos, 'sub'),
+    linha('Ofertas', d.ofertas, 'sub'),
+    d.usoSaldoAnterior ? linha('Uso do saldo de meses anteriores', d.usoSaldoAnterior, 'sub') : '',
+    linha('Total das origens', d.totalOrigens, 'total'),
+  ].join('\n');
+  const aplicacoes = [
+    ...d.despesas.map((x) => linha(x.rotulo, x.centavos, 'sub')),
+    d.despesas.length ? linha('Total das despesas', d.totalDespesas, 'subtotal') : '<tr class="sub"><td>Nenhuma despesa no mês</td><td class="num">R$ 0,00</td></tr>',
+    d.saldoMantido ? linha('Saldo do mês mantido em caixa (superávit)', d.saldoMantido, 'reserva') : '',
+    linha('Total das aplicações', d.totalAplicacoes, 'total'),
+  ].join('\n');
+  const corpo = `<style>
+  .demo { width: 100%; } .demo td { padding: 5pt 7pt; border-bottom: 0.5pt solid #e8e2e0; }
+  .demo .sub td:first-child { padding-left: 16pt; } .demo .num { white-space: nowrap; }
+  .demo .subtotal td { font-weight: bold; } .demo .reserva td { color: #4f4643; font-weight: bold; background: #f6f3f2; }
+  .demo .total td { font-weight: bold; font-size: 12pt; border-top: 1.2pt solid #1c1716; border-bottom: none; background: #fff0e0; }
+  .igual { margin-top: 10pt; padding: 8pt 10pt; border-radius: 6pt; background: #e3f4e8; color: #1a7a38; font-weight: bold; text-align: center; }
+  .nota { color: #6b5f5c; font-size: 9pt; margin-top: 8pt; line-height: 1.45; }
+</style>
+<div class="quadros">
+${quadro('Total das origens', formatarReais(d.totalOrigens), 'verde')}
+${quadro('Total das despesas', formatarReais(d.totalDespesas), 'vermelho')}
+${quadro('Mantido em caixa', formatarReais(d.saldoMantido))}
+${quadro('Total das aplicações', formatarReais(d.totalAplicacoes))}
+</div>
+<div class="duas bloco">
+<div><h2>Origens dos recursos</h2><table class="demo">${origens}</table></div>
+<div><h2>Aplicações dos recursos</h2><table class="demo">${aplicacoes}</table></div>
+</div>
+<div class="igual">Total das origens ${formatarReais(d.totalOrigens)} = Total das aplicações ${formatarReais(d.totalAplicacoes)}</div>
+<div class="duas bloco">
+<div><h2>Como os recursos foram aplicados</h2><div class="grafico">${g.rosca.xml}</div></div>
+<div><h2>Despesas do mês</h2><div class="grafico">${g.despesas ? g.despesas.xml : '<p>Nenhuma despesa neste mês.</p>'}</div></div>
+</div>
+<p class="nota">Valores do mês de ${esc(nomeMes(d.mes).toLowerCase())}, apenas com os lançamentos do próprio mês.
+O "saldo do mês mantido em caixa" não é despesa: é o valor que entrou e ficou guardado na igreja para os meses seguintes.
+${d.usoSaldoAnterior ? 'Neste mês as despesas foram maiores que as entradas; a diferença foi paga com o saldo de meses anteriores. ' : ''}Com ele, o total das aplicações fica igual ao total das origens.</p>`;
+  return pagina('Demonstrativo de origens e aplicações - ' + nomeMes(d.mes), cab, corpo);
 }
 
 export { dataHoraBR };

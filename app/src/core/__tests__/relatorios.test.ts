@@ -1,8 +1,8 @@
 import * as XLSX from 'xlsx';
 
-import { PALETA_CLARA, graficoBarras, graficoComparativo, graficoLinha } from '../graficos';
-import { COLUNAS_EXCEL, gerarExcel, htmlDashboard, htmlRelatorio, nomeArquivo } from '../relatorios';
-import { agruparPorMes, calcularCaixa, serieDiaria } from '../totais';
+import { PALETA_CLARA, graficoBarras, graficoComparativo, graficoLinha, graficoRosca } from '../graficos';
+import { COLUNAS_EXCEL, gerarExcel, htmlContabilidade, htmlDashboard, htmlRelatorio, nomeArquivo } from '../relatorios';
+import { agruparPorMes, calcularCaixa, demonstrativoContabil, serieDiaria } from '../totais';
 import { lanc, saida } from './fabrica';
 
 const cab = { nomeApp: 'ADRER', nomeCompleto: 'Assembleia de Deus Rocha Eterna dos Remidos', logo: 'data:image/png;base64,AAAA', geradoPor: 'dono@gmail.com', geradoEm: '14/11/2026 15:00' };
@@ -59,7 +59,7 @@ test('dashboard em HTML: quadros, 4 gráficos e tabela dos últimos meses', () =
   const comparativo = caixa.comparativo('2026-11', 3);
   const html = htmlDashboard(resumo, comparativo, {
     linha: graficoLinha(serieDiaria(nov, '2026-11', resumo.saldoAnterior, '2026-11-14'), PALETA_CLARA),
-    barras: graficoBarras([{ rotulo: 'Dízimos', centavos: resumo.dizimos, cor: '#1A7A38' }], PALETA_CLARA),
+    rosca: graficoRosca([{ rotulo: 'Dízimos', centavos: resumo.dizimos, cor: '#1A7A38' }], { titulo: 'resultado', valor: 'x' }, PALETA_CLARA),
     despesas: null,
     comparativo: graficoComparativo(comparativo, PALETA_CLARA, '2026-11'),
   }, cab);
@@ -68,4 +68,32 @@ test('dashboard em HTML: quadros, 4 gráficos e tabela dos últimos meses', () =
   expect(html).toContain('Nenhuma despesa neste mês.');
   expect(html).toContain('out/26');
   expect(html).toContain('Últimos meses');
+});
+
+describe('relatório para a contabilidade', () => {
+  const rosca = graficoRosca([], { titulo: 'aplicado', valor: 'x' }, PALETA_CLARA);
+
+  test('sobrou dinheiro: despesas reais + saldo mantido em caixa = total das entradas', () => {
+    const d = demonstrativoContabil([...nov, lanc({ dataReferencia: '2026-11-20', valorCentavos: 100000 })], '2026-11');
+    const html = htmlContabilidade(d, { rosca, despesas: graficoBarras([{ rotulo: 'Luz', centavos: 12735, cor: '#C0262D' }], PALETA_CLARA) }, cab);
+    expect(html).toContain('Demonstrativo de origens e aplicações - Novembro de 2026');
+    expect(html).toMatch(/Total das origens R\$ 1\.070,50 = Total das aplicações R\$ 1\.070,50/);
+    expect(html).toContain('Saldo do mês mantido em caixa (superávit)');
+    expect(html).toContain('R$ 943,15');
+    expect(html).toContain('Luz &lt;b&gt;&amp;'); // só a despesa real, com o texto protegido
+    expect(html).not.toMatch(/Outros|Outras despesas/);
+    expect(html).not.toContain('Uso do saldo de meses anteriores');
+  });
+
+  test('gastou mais do que entrou: aparece o uso do saldo anterior e nenhuma sobra', () => {
+    const d = demonstrativoContabil([saida('Reforma', 30000), lanc({ valorCentavos: 10000 })], '2026-11');
+    const html = htmlContabilidade(d, { rosca, despesas: null }, cab);
+    expect(html).toContain('Uso do saldo de meses anteriores');
+    expect(html).not.toContain('mantido em caixa (superávit)</td>');
+    expect(html).toMatch(/Total das origens R\$ 300,00 = Total das aplicações R\$ 300,00/);
+  });
+
+  test('nome do arquivo', () => {
+    expect(nomeArquivo('ADRER', 'contabilidade', '2026-11', 'pdf')).toBe('ADRER-contabilidade-2026-11.pdf');
+  });
 });
