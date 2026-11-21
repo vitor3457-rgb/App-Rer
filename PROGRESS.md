@@ -63,18 +63,32 @@ M16. [U] Teste no celular, ajustes, guia novo (README), desligar login por e-mai
   Feito com `supabase/importar-appsheet.mjs <arquivo> --aplicar`: 122 lançamentos (mai–out/2026) e
   23 membros; os 13 de teste ficaram marcados como excluídos. Caixa no fim de out/2026: R$ 17.036,54.
   Migração `0002` criou as colunas `forma_pagamento` e `observacao` (vindas do AppSheet); o app mostra
-  as duas no detalhe e no Excel, mas o FORMULÁRIO ainda não tem esses campos (perguntado ao usuário).
+  as duas no detalhe e no Excel (e, desde 16/11, também no formulário).
   **NÃO rodar mais `importar-planilha.mjs`** (a planilha do Apps Script só tinha testes).
   O arquivo do AppSheet tem nomes de pessoas: não commitar.
+- **16/11/2026:** formulário ganhou Forma de pagamento (Dinheiro/PIX, só nas entradas) e Observação;
+  sugestões de nomes vêm só do cadastro de membros ativos. Saldo de abertura antes de maio fica R$ 0,00
+  até o usuário falar com a pessoa das finanças.
+- **21/11/2026 — DESIGN NOVO publicado (EAS Update, commit 9d32004):** tela Início (`(abas)/index.tsx`:
+  saldo em caixa em destaque, gráfico do mês, últimos 5 lançamentos), formulário movido para
+  `(abas)/novo.tsx`, menu flutuante com "+" no meio (`ui/MenuFlutuante.tsx`), fundo em degradê
+  (`ui/Degrade.tsx`), lista de lançamentos agrupada por dia (segurar o dedo = excluir; tocar = detalhe),
+  dashboard com gráfico de rosca. **PDF para a contabilidade** no Dashboard (`htmlContabilidade` em
+  `core/relatorios.ts`, `demonstrativoContabil` em `core/totais.ts`): demonstrativo de origens e
+  aplicações do mês — origens (dízimos, ofertas e, se gastou mais do que entrou, "uso do saldo de meses
+  anteriores") = aplicações (despesas REAIS + "saldo do mês mantido em caixa"). O usuário sugeriu
+  inventar despesas para fechar; recusado (seria documento falso para a contabilidade) e explicado.
+  Testes: 87 unitários, 31 de tela.
 - **Próximo passo exato:**
-  1. Usuário responder: (a) quer os campos Forma de pagamento e Observação no formulário?
-     (b) quer o redesenho (tela inicial de resumo + botão "+", menu flutuante, lista por dia,
-     gráficos novos, animações)? (c) há saldo de abertura antes de maio/2026?
+  1. Usuário abrir o app (fechar e abrir 2 vezes para baixar a atualização) e dizer se gostou do
+     design novo e se o formato do PDF para a contabilidade atende o contador.
   2. Quando vier o e-mail do tesoureiro: Google Cloud → Público-alvo → Usuários de teste e
      Mais → Usuários no app (o usuário faz os dois).
   3. Escrever o guia novo no README e aposentar o app do Apps Script.
   4. Opcional: página de política de privacidade para publicar o OAuth (acaba com o relogin a cada 7 dias).
-- Nos testes de tela, as abas ficam montadas uma sob a outra (z-index): escopar seletores por tela.
+  5. O link do APK vence em 28/11/2026: se alguém precisar instalar depois disso, gerar um build novo.
+- Nos testes de tela, as abas ficam montadas uma sob a outra (z-index): escopar seletores por tela
+  (`D()` = Dashboard, `L()` = Lançamentos; a tela Início também tem itens de lançamento).
 - Comandos (dentro de `app/`): `npm test` · `npm run typecheck` · `npm run test:integracao`.
   Na raiz: `npm run banco:aplicar` · `npm run banco:testar`.
 - Observações técnicas:
@@ -85,9 +99,7 @@ M16. [U] Teste no celular, ajustes, guia novo (README), desligar login por e-mai
     **desligar na M16** (Auth → Providers → Email) para sobrar só o Google.
 
 ### Pendências do usuário (Fase 2)
-- **Token do Expo**: o que foi salvo no formulário é recusado pelo Expo ("bearer token is invalid").
-  Pedir de novo (formulário seguro, host api.expo.dev) antes da etapa M15.
-- **Login Google**: criar o cliente OAuth no Google Cloud e colar ID/segredo no painel do Supabase (guiar na M6).
+- Opinar sobre o design novo e o PDF para a contabilidade (publicados em 21/11/2026).
 - E-mail do tesoureiro e saldo de abertura do caixa: ficam para depois (ajustáveis dentro do app pelo admin).
 
 ---
