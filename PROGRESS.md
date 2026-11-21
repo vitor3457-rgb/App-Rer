@@ -82,8 +82,7 @@ M16. [U] Teste no celular, ajustes, guia novo (README), desligar login por e-mai
 - **Próximo passo exato:**
   1. Usuário abrir o app (fechar e abrir 2 vezes para baixar a atualização) e dizer se gostou do
      design novo e se o formato do PDF para a contabilidade atende o contador.
-  2. Quando vier o e-mail do tesoureiro: Google Cloud → Público-alvo → Usuários de teste e
-     Mais → Usuários no app (o usuário faz os dois).
+  2. (Feito em 21/11) O financeiro (Alex, alexsilvestre02@gmail.com) já está em Usuários e já lança.
   3. Escrever o guia novo no README e aposentar o app do Apps Script.
   4. Opcional: página de política de privacidade para publicar o OAuth (acaba com o relogin a cada 7 dias).
   5. O link do APK vence em 28/11/2026: se alguém precisar instalar depois disso, gerar um build novo.
