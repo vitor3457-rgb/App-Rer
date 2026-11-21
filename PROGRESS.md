@@ -92,7 +92,10 @@ M16. [U] Teste no celular, ajustes, guia novo (README), desligar login por e-mai
      Depois (a pedido da contabilidade) a reserva passou a ficar DENTRO das despesas, com o mesmo nome
      ("Reserva para despesas dos próximos meses"); quadros: origens, despesas, diferença R$ 0,00; nota em
      letras miúdas removida. O nome da linha continua dizendo o que é (não renomear para despesa inventada).
-     Aguardando o Alex confirmar com a contabilidade se o modelo atende.
+     Por fim (21/11) o usuário pediu para VOLTAR à 1ª versão, com saldo: aplicações = despesas reais +
+     "Saldo do mês mantido em caixa (superávit)"; quadro "Saldo do mês" (entradas - despesas, com sinal);
+     gráfico redondo com Dízimos, Ofertas e Saídas e o saldo do mês no centro; sem nota e sem e-mail.
+     Esta é a versão em uso.
   2. (Feito em 21/11) O financeiro (Alex, alexsilvestre02@gmail.com) já está em Usuários e já lança.
   3. Escrever o guia novo no README e aposentar o app do Apps Script.
   4. Opcional: página de política de privacidade para publicar o OAuth (acaba com o relogin a cada 7 dias).

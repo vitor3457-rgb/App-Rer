@@ -73,27 +73,27 @@ test('dashboard em HTML: quadros, 4 gráficos e tabela dos últimos meses', () =
 describe('relatório para a contabilidade', () => {
   const rosca = graficoRosca([], { titulo: 'aplicado', valor: 'x' }, PALETA_CLARA);
 
-  test('sobrou dinheiro: despesas reais + reserva para os próximos meses = total das entradas', () => {
+  test('sobrou dinheiro: despesas reais + saldo do mês = total das entradas', () => {
     const d = demonstrativoContabil([...nov, lanc({ dataReferencia: '2026-11-20', valorCentavos: 100000 })], '2026-11');
     const html = htmlContabilidade(d, { rosca, despesas: graficoBarras([{ rotulo: 'Luz', centavos: 12735, cor: '#C0262D' }], PALETA_CLARA) }, cab);
     expect(html).toContain('Demonstrativo de origens e aplicações - Novembro de 2026');
-    expect(html).toMatch(/Total das origens R\$ 1\.070,50 = Total das despesas R\$ 1\.070,50/);
-    expect(html).toMatch(/Reserva para despesas dos próximos meses<\/td><td class="num">R\$ 943,15[\s\S]*Total das despesas<\/td><td class="num">R\$ 1\.070,50/);
+    expect(html).toMatch(/Total das origens R\$ 1\.070,50 = Total das aplicações R\$ 1\.070,50/);
+    expect(html).toMatch(/Saldo do mês mantido em caixa \(superávit\)<\/td><td class="num">R\$ 943,15/);
+    expect(html).toMatch(/Saldo do mês<\/span><strong class="verde">\+ R\$ 943,15/);
+    expect(html).toContain('Dízimos, ofertas e saídas');
     expect(html).not.toContain('class="nota"'); // sem a nota em letras miúdas
-    expect(html).toContain('Reserva para despesas dos próximos meses');
-    expect(html).not.toMatch(/superávit|Mantido em caixa/i);
-    expect(html).toContain('R$ 943,15');
     expect(html).toContain('Luz &lt;b&gt;&amp;'); // só a despesa real, com o texto protegido
-    expect(html).not.toMatch(/Outros|Outras despesas/);
-    expect(html).not.toContain('Uso de reservas de meses anteriores');
+    expect(html).not.toMatch(/Outros|Outras despesas|Reserva para despesas/);
+    expect(html).not.toContain('Uso do saldo de meses anteriores');
   });
 
-  test('gastou mais do que entrou: aparece o uso do saldo anterior e nenhuma sobra', () => {
+  test('gastou mais do que entrou: aparece o uso do saldo anterior e o saldo do mês negativo', () => {
     const d = demonstrativoContabil([saida('Reforma', 30000), lanc({ valorCentavos: 10000 })], '2026-11');
     const html = htmlContabilidade(d, { rosca, despesas: null }, cab);
-    expect(html).toContain('Uso de reservas de meses anteriores');
-    expect(html).not.toContain('Reserva para despesas dos próximos meses</td>');
-    expect(html).toMatch(/Total das origens R\$ 300,00 = Total das despesas R\$ 300,00/);
+    expect(html).toContain('Uso do saldo de meses anteriores');
+    expect(html).not.toContain('(superávit)</td>');
+    expect(html).toMatch(/Saldo do mês<\/span><strong class="vermelho">- R\$ 200,00/);
+    expect(html).toMatch(/Total das origens R\$ 300,00 = Total das aplicações R\$ 300,00/);
   });
 
   test('sem o e-mail de quem gerou, quando o cabeçalho não traz', () => {

@@ -213,18 +213,18 @@ export interface GraficosContabilidade {
 export function htmlContabilidade(d: Demonstrativo, g: GraficosContabilidade, cab: Cabecalho): string {
   const linha = (rotulo: string, valor: number, classe = '') => `<tr class="${classe}"><td>${esc(rotulo)}</td><td class="num">${formatarReais(valor)}</td></tr>`;
   const quadro = (rotulo: string, valor: string, classe = '') => `<div class="quadro"><span>${rotulo}</span><strong class="${classe}">${valor}</strong></div>`;
+  const saldoDoMes = d.entradas - d.totalDespesas; // a diferença: entradas - despesas do mês
   const origens = [
     linha('Dízimos', d.dizimos, 'sub'),
     linha('Ofertas', d.ofertas, 'sub'),
-    d.usoSaldoAnterior ? linha('Uso de reservas de meses anteriores', d.usoSaldoAnterior, 'sub') : '',
+    d.usoSaldoAnterior ? linha('Uso do saldo de meses anteriores', d.usoSaldoAnterior, 'sub') : '',
     linha('Total das origens', d.totalOrigens, 'total'),
   ].join('\n');
-  // A contabilidade pediu a reserva dentro das despesas (o mês fecha com origens = despesas).
-  const despesas = [
+  const aplicacoes = [
     ...d.despesas.map((x) => linha(x.rotulo, x.centavos, 'sub')),
-    d.saldoMantido ? linha('Reserva para despesas dos próximos meses', d.saldoMantido, 'sub') : '',
-    d.despesas.length || d.saldoMantido ? '' : '<tr class="sub"><td>Nenhuma despesa no mês</td><td class="num">R$ 0,00</td></tr>',
-    linha('Total das despesas', d.totalAplicacoes, 'total'),
+    d.despesas.length ? linha('Total das despesas', d.totalDespesas, 'subtotal') : '<tr class="sub"><td>Nenhuma despesa no mês</td><td class="num">R$ 0,00</td></tr>',
+    d.saldoMantido ? linha('Saldo do mês mantido em caixa (superávit)', d.saldoMantido, 'reserva') : '',
+    linha('Total das aplicações', d.totalAplicacoes, 'total'),
   ].join('\n');
   const corpo = `<style>
   .demo { width: 100%; } .demo td { padding: 5pt 7pt; border-bottom: 0.5pt solid #e8e2e0; }
@@ -232,20 +232,20 @@ export function htmlContabilidade(d: Demonstrativo, g: GraficosContabilidade, ca
   .demo .subtotal td { font-weight: bold; } .demo .reserva td { color: #4f4643; font-weight: bold; background: #f6f3f2; }
   .demo .total td { font-weight: bold; font-size: 12pt; border-top: 1.2pt solid #1c1716; border-bottom: none; background: #fff0e0; }
   .igual { margin-top: 10pt; padding: 8pt 10pt; border-radius: 6pt; background: #e3f4e8; color: #1a7a38; font-weight: bold; text-align: center; }
-  .nota { color: #6b5f5c; font-size: 9pt; margin-top: 8pt; line-height: 1.45; }
 </style>
 <div class="quadros">
 ${quadro('Total das origens', formatarReais(d.totalOrigens), 'verde')}
-${quadro('Total das despesas', formatarReais(d.totalAplicacoes), 'vermelho')}
-${quadro('Diferença', formatarReais(d.totalOrigens - d.totalAplicacoes))}
+${quadro('Total das despesas', formatarReais(d.totalDespesas), 'vermelho')}
+${quadro('Saldo do mês', formatarComSinal(saldoDoMes), saldoDoMes < 0 ? 'vermelho' : 'verde')}
+${quadro('Total das aplicações', formatarReais(d.totalAplicacoes))}
 </div>
 <div class="duas bloco">
 <div><h2>Origens dos recursos</h2><table class="demo">${origens}</table></div>
-<div><h2>Despesas</h2><table class="demo">${despesas}</table></div>
+<div><h2>Aplicações dos recursos</h2><table class="demo">${aplicacoes}</table></div>
 </div>
-<div class="igual">Total das origens ${formatarReais(d.totalOrigens)} = Total das despesas ${formatarReais(d.totalAplicacoes)}</div>
+<div class="igual">Total das origens ${formatarReais(d.totalOrigens)} = Total das aplicações ${formatarReais(d.totalAplicacoes)}</div>
 <div class="duas bloco">
-<div><h2>Composição das despesas</h2><div class="grafico">${g.rosca.xml}</div></div>
+<div><h2>Dízimos, ofertas e saídas</h2><div class="grafico">${g.rosca.xml}</div></div>
 <div><h2>Despesas do mês</h2><div class="grafico">${g.despesas ? g.despesas.xml : '<p>Nenhuma despesa neste mês.</p>'}</div></div>
 </div>
 `;
