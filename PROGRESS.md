@@ -79,6 +79,10 @@ M16. [U] Teste no celular, ajustes, guia novo (README), desligar login por e-mai
   anteriores") = aplicações (despesas REAIS + "saldo do mês mantido em caixa"). O usuário sugeriu
   inventar despesas para fechar; recusado (seria documento falso para a contabilidade) e explicado.
   Testes: 87 unitários, 31 de tela.
+- **21/11/2026 — correção publicada:** no Android o degradê do cartão aparecia cortado (SVG com "100%"
+  ficava com a 1ª medida) → `Degrade` mede com onLayout. Com a letra do celular aumentada, "Lançamentos"
+  virava "Lançament…" → `tamanhoDaLetraDoMenu` (MenuFlutuante) calcula o tamanho que cabe. Legenda dos
+  itens pode ter 2 linhas.
 - **Próximo passo exato:**
   1. Usuário abrir o app (fechar e abrir 2 vezes para baixar a atualização) e dizer se gostou do
      design novo e se o formato do PDF para a contabilidade atende o contador.
